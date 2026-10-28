@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2021"
 description = "FDS local knowledge database CLI"
 
+[workspace]
+members = ["fds-core"]
+resolver = "2"
+
 [[bin]]
 name = "fds"
 path = "src/main.rs"

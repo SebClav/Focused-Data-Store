@@ -9,8 +9,10 @@ use crate::text::{canonical, fold};
 
 /// Build a record with a stable content-derived ID and current metadata.
 ///
-/// Facts and procedures use their normalized question/intent as the ID seed;
-/// knowledge records use their source identifier.
+/// Facts and procedures use their collection and normalized question/intent
+/// as the ID seed; knowledge records use their collection and source. The
+/// collection is part of the seed so the same question in two collections is
+/// two records.
 #[allow(clippy::too_many_arguments)]
 pub fn record(
     kind: Kind,
@@ -22,10 +24,19 @@ pub fn record(
     verified_by: &str,
     rtype: &str,
 ) -> Record {
+    // U+001F separates the parts so no collection name can run into the rest.
     let seed = match kind {
-        Kind::Fact => format!("fact:{}", canonical(question.unwrap_or(""))),
-        Kind::Procedure => format!("procedure:{}", canonical(question.unwrap_or(""))),
-        Kind::Knowledge => format!("knowledge:{source}#0"),
+        Kind::Fact => format!(
+            "fact:{collection}\u{1f}{}",
+            canonical(question.unwrap_or(""))
+        ),
+        Kind::Procedure => {
+            format!(
+                "procedure:{collection}\u{1f}{}",
+                canonical(question.unwrap_or(""))
+            )
+        }
+        Kind::Knowledge => format!("knowledge:{collection}\u{1f}{source}#0"),
     };
     let tokens = body.split_whitespace().count() as u32;
     Record {
@@ -66,6 +77,24 @@ pub fn fact(
         "human",
         "",
     ))
+}
+
+/// Whether two records are the same one, so that saving one replaces the other.
+///
+/// A fact or procedure is its question within a collection; knowledge is its
+/// source within a collection. Context records are global and match by ID.
+/// This is judged from the stored fields, not the ID, so databases written
+/// before the collection became part of the ID still match.
+pub fn same_identity(a: &Record, b: &Record) -> bool {
+    if a.rtype == "context" || b.rtype == "context" {
+        return a.id == b.id;
+    }
+    a.kind == b.kind
+        && a.collection == b.collection
+        && match a.kind {
+            Kind::Knowledge => a.source == b.source,
+            Kind::Fact | Kind::Procedure => a.question.is_some() && a.question == b.question,
+        }
 }
 
 /// Stable ID of the context record called `name`.

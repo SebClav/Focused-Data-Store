@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use fds::v4::{self, DbMeta, Record};
 use fds::FdsError;
 
-use crate::record::today;
+use crate::record::{same_identity, today};
 
 /// A database loaded into memory, together with the file it came from.
 pub struct Store {
@@ -33,10 +33,18 @@ impl Store {
         v4::write_db(&self.path, &self.meta, &self.records).map_err(explain)
     }
 
-    /// Replace any existing record with the same stable ID.
-    pub fn upsert(&mut self, record: Record) {
-        self.records.retain(|x| x.id != record.id);
+    /// Save a record, replacing the one it is (see [`same_identity`]) and
+    /// keeping that record's ID. Returns the ID the record now has.
+    pub fn upsert(&mut self, mut record: Record) -> String {
+        let existing = self.records.iter().find(|x| same_identity(x, &record));
+        if let Some(existing) = existing {
+            record.id = existing.id.clone();
+        }
+        self.records
+            .retain(|x| x.id != record.id && !same_identity(x, &record));
+        let id = record.id.clone();
         self.records.push(record);
+        id
     }
 }
 
@@ -116,5 +124,92 @@ pub fn lock_database(path: &Path) -> Result<fs::File, String> {
                 return Err(format!("cannot lock {}: {e}", path.display()))
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use fds::v4::{DbMeta, Kind, Record};
+    use std::path::PathBuf;
+
+    use super::Store;
+    use crate::record::{fact, record};
+
+    fn store() -> Store {
+        Store {
+            path: PathBuf::new(),
+            meta: DbMeta::default(),
+            records: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn the_same_question_in_two_collections_is_two_records() {
+        let mut store = store();
+        let alpha = store.upsert(fact("What is the port?", "443", "alpha", "s1").unwrap());
+        let beta = store.upsert(fact("What is the port?", "8080", "beta", "s2").unwrap());
+
+        assert_ne!(alpha, beta);
+        assert_eq!(store.records.len(), 2);
+        let body = |id: &str| {
+            store
+                .records
+                .iter()
+                .find(|r| r.id == id)
+                .unwrap()
+                .body
+                .clone()
+        };
+        assert_eq!(body(&alpha), "443");
+        assert_eq!(body(&beta), "8080");
+    }
+
+    #[test]
+    fn the_same_question_in_the_same_collection_is_replaced() {
+        let mut store = store();
+        let first = store.upsert(fact("What is the port?", "443", "alpha", "s1").unwrap());
+        let second = store.upsert(fact("what is the PORT", "8080", "alpha", "s2").unwrap());
+
+        assert_eq!(first, second);
+        assert_eq!(store.records.len(), 1);
+        assert_eq!(store.records[0].body, "8080");
+    }
+
+    #[test]
+    fn replacing_a_record_with_an_older_id_keeps_that_id() {
+        // Databases written before the collection was part of the ID.
+        let mut old: Record = fact("What is the port?", "443", "alpha", "s1").unwrap();
+        old.id = "00000000deadbeef".into();
+        let mut store = store();
+        store.records.push(old);
+
+        let id = store.upsert(fact("What is the port?", "8080", "alpha", "s2").unwrap());
+
+        assert_eq!(id, "00000000deadbeef");
+        assert_eq!(store.records.len(), 1);
+        assert_eq!(store.records[0].body, "8080");
+    }
+
+    #[test]
+    fn knowledge_from_one_source_is_kept_per_collection() {
+        let mut store = store();
+        let add = |store: &mut Store, collection: &str, text: &str| {
+            store.upsert(record(
+                Kind::Knowledge,
+                collection,
+                None,
+                text.into(),
+                "doc",
+                "notes.txt",
+                "ingest",
+                "",
+            ))
+        };
+        let a = add(&mut store, "kb-a", "first");
+        let b = add(&mut store, "kb-b", "second");
+        add(&mut store, "kb-a", "first, revised");
+
+        assert_ne!(a, b);
+        assert_eq!(store.records.len(), 2);
     }
 }

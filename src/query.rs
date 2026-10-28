@@ -35,21 +35,28 @@ pub fn query_records(
     };
 
     // Prefer an exact normalized fact/procedure question before fuzzy retrieval.
+    // The same question can be answered in several collections: return every
+    // answer rather than picking one.
     let qcanon = canonical(query);
-    let compiled = records
+    let qkey = token_key(&qcanon);
+    let compiled: Vec<Value> = records
         .iter()
         .filter(visible)
         .filter(|r| matches!(r.kind, Kind::Fact | Kind::Procedure))
-        .rfind(|r| {
-            r.question.as_deref().is_some_and(|stored| {
-                canonical(stored) == qcanon || token_key(stored) == token_key(&qcanon)
-            })
-        });
-    if let Some(r) = compiled {
-        let mut result = public_record(r);
-        result["confidence"] = json!("exact");
-        result["match"] = json!("compiled");
-        return json!({"confidence": "exact", "results": [result]});
+        .filter(|r| {
+            r.question
+                .as_deref()
+                .is_some_and(|stored| canonical(stored) == qcanon || token_key(stored) == qkey)
+        })
+        .map(|r| {
+            let mut result = public_record(r);
+            result["confidence"] = json!("exact");
+            result["match"] = json!("compiled");
+            result
+        })
+        .collect();
+    if !compiled.is_empty() {
+        return json!({"confidence": "exact", "results": compiled});
     }
 
     // Fall back to a small BM25-style lexical ranking when there is no exact hit.

@@ -11,7 +11,7 @@ use crate::cli::{Command, ContextCommand, FactCommand, ProcCommand};
 use crate::db::Store;
 use crate::output::{print_value, public_record};
 use crate::query::query_records;
-use crate::record::{context_id, fact, record};
+use crate::record::{context_id, fact, record, same_identity};
 
 /// Run one command and return the process exit code.
 pub fn dispatch(store: &mut Store, command: Command, json: bool) -> Result<u8, String> {
@@ -109,26 +109,26 @@ fn fact_add(
     let r = fact(question, answer, collection, source)?;
     if let Some(existing) = fact_conflict(&store.records, &r) {
         eprintln!(
-            "warning: fact {} conflicts with an existing record (answer, collection, or source differs); the new fact will replace it",
-            existing.id
+            "warning: fact {} conflicts with an existing record in collection `{}` (answer or source differs); the new fact will replace it",
+            existing.id, existing.collection
         );
     }
-    store.upsert(r.clone());
+    let id = store.upsert(r);
     store.save()?;
-    println!("{}", r.id);
+    println!("{id}");
     Ok(())
 }
 
+/// The fact that saving `incoming` would replace with a different answer or
+/// source. The same question in another collection is a different fact.
 fn fact_conflict<'a>(
     records: &'a [fds::v4::Record],
     incoming: &fds::v4::Record,
 ) -> Option<&'a fds::v4::Record> {
     records.iter().find(|existing| {
-        existing.id == incoming.id
-            && existing.kind == Kind::Fact
-            && (existing.body != incoming.body
-                || existing.collection != incoming.collection
-                || existing.source != incoming.source)
+        existing.kind == Kind::Fact
+            && same_identity(existing, incoming)
+            && (existing.body != incoming.body || existing.source != incoming.source)
     })
 }
 
@@ -451,9 +451,16 @@ mod tests {
     }
 
     #[test]
-    fn detects_when_upsert_would_move_or_replace_a_fact_source() {
+    fn detects_when_upsert_would_replace_a_fact_source() {
         let existing = fact("443", "network", "spec");
-        let moved = fact("443", "operations", "runtime-config");
+        let moved = fact("443", "network", "runtime-config");
         assert!(fact_conflict(&[existing], &moved).is_some());
+    }
+
+    #[test]
+    fn the_same_question_in_another_collection_is_not_a_conflict() {
+        let existing = fact("443", "network", "spec");
+        let other = fact("8443", "operations", "runtime-config");
+        assert!(fact_conflict(&[existing], &other).is_none());
     }
 }

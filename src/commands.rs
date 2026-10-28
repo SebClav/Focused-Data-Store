@@ -107,10 +107,29 @@ fn fact_add(
     source: &str,
 ) -> Result<(), String> {
     let r = fact(question, answer, collection, source)?;
+    if let Some(existing) = fact_conflict(&store.records, &r) {
+        eprintln!(
+            "warning: fact {} conflicts with an existing record (answer, collection, or source differs); the new fact will replace it",
+            existing.id
+        );
+    }
     store.upsert(r.clone());
     store.save()?;
     println!("{}", r.id);
     Ok(())
+}
+
+fn fact_conflict<'a>(
+    records: &'a [fds::v4::Record],
+    incoming: &fds::v4::Record,
+) -> Option<&'a fds::v4::Record> {
+    records.iter().find(|existing| {
+        existing.id == incoming.id
+            && existing.kind == Kind::Fact
+            && (existing.body != incoming.body
+                || existing.collection != incoming.collection
+                || existing.source != incoming.source)
+    })
 }
 
 fn fact_import(store: &mut Store, file: &Path, collection: &str) -> Result<(), String> {
@@ -396,4 +415,45 @@ fn import(store: &mut Store, file: &Path, collection: &str, dry_run: bool) -> Re
 fn read_json(path: &Path) -> Result<Value, String> {
     let bytes = fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
     serde_json::from_slice(&bytes).map_err(|e| format!("{}: {e}", path.display()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::fact_conflict;
+    use crate::record::record;
+    use fds::v4::{Kind, Record};
+
+    fn fact(answer: &str, collection: &str, source: &str) -> Record {
+        record(
+            Kind::Fact,
+            collection,
+            Some("What is the service port?"),
+            answer.into(),
+            "Service port",
+            source,
+            "human",
+            "",
+        )
+    }
+
+    #[test]
+    fn detects_a_different_answer_for_the_same_fact() {
+        let existing = fact("443", "network", "spec");
+        let proposed = fact("8443", "network", "spec");
+        assert!(fact_conflict(&[existing], &proposed).is_some());
+    }
+
+    #[test]
+    fn does_not_warn_when_fact_content_and_provenance_match() {
+        let existing = fact("443", "network", "spec");
+        let repeated = fact("443", "network", "spec");
+        assert!(fact_conflict(&[existing], &repeated).is_none());
+    }
+
+    #[test]
+    fn detects_when_upsert_would_move_or_replace_a_fact_source() {
+        let existing = fact("443", "network", "spec");
+        let moved = fact("443", "operations", "runtime-config");
+        assert!(fact_conflict(&[existing], &moved).is_some());
+    }
 }

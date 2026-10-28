@@ -28,10 +28,15 @@ cargo test --workspace
 cargo run -- init project
 cargo run -- --db project.fds status
 cargo run -- --db project.fds fact add "What is the service port?" "443" --collection project --source network-spec
+cargo run -- --read-only --db project.fds --json review list
+cargo run -- --read-only --db project.fds --json show RECORD_ID
+cargo run -- --db project.fds review approve RECORD_ID --reviewer "Reviewer name" --note "Checked source"
 cargo run -- --db project.fds --json query "service port" --collection project
 cargo run -- --db project.fds ls --collection project
-cargo run -- --read-only --db project.fds --json query "service port" --collection project
+cargo run -- --read-only --db project.fds --json query "service port" --collection project --review-status approved
 ~~~
+
+Replace `RECORD_ID` with the full ID printed by `fact add` or `review list`. New and replaced records are pending until a human inspects and explicitly approves them. Approval records a reviewer name, date and optional note; updates return the record to pending.
 
 Use fds --help and fds <command> --help to see the commands available in this build. The .fds file can be copied and versioned with the project. Keep backups before editing it.
 
@@ -51,7 +56,9 @@ fds --read-only --db examples/agent_guide.fds --json query "How should an AI cod
 
 Query labels describe retrieval matches, not whether a fact is true. Review important facts and their sources. In this build, some advanced command names are present in help but not implemented; do not assume MCP, embeddings, policy enforcement, audit history, or graphical management is available in this CLI-only package.
 
-The `--read-only` option blocks database creation and all mutating CLI commands. For a security boundary against other programs, also enforce read-only filesystem permissions on the `.fds` file.
+Use `--review-status approved` when an agent should receive only explicitly approved records. Existing records marked `verified_by=human` by older versions remain pending until they are explicitly reviewed; `--verified-by human` alone filters the legacy label and does not establish approval. The reviewer name is self-declared, and approval metadata can be altered by anyone with file write access; it is not authenticated or an append-only audit log.
+
+The `--read-only` option blocks database creation and all mutating CLI commands, including review approval. For a security boundary against other programs, also enforce read-only filesystem permissions on the `.fds` file.
 
 The [file format specification](SPEC.md) documents version 4 and legacy version 2 and 3 compatibility.
 

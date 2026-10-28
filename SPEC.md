@@ -109,3 +109,7 @@ The header is followed by bincode metadata, bincode records, then `record_count`
 ## 4. Query and trust semantics
 
 `kind` describes how a record is retrieved, not whether it is true. `verified_by` and `source` carry provenance labels, but the file format does not authenticate them. Applications must not treat a lexical match or a label such as `exact`, `strong`, or `weak` as proof of truth. Human review and host filesystem permissions remain outside the file format.
+
+The CLI records explicit reviews in `attrs`: `fds.review.status` is `approved` or `pending`, `fds.review.reviewer` is the self-declared reviewer name, and `fds.review.note` is an optional note. An approved record also has `verified_by = human` and a non-empty `last_verified` date. Records without these review fields, including legacy records labelled `human`, are treated as pending by `--review-status` and `review list`. Creating or replacing a record resets its review status to pending and clears the reviewer and verification date.
+
+These fields are mutable metadata, not authentication or an append-only history. A host must restrict write access if agents or other processes must not approve or alter records. The format does not prove that the named reviewer is a human or that a review actually occurred.

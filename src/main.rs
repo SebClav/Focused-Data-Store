@@ -11,6 +11,7 @@ mod db;
 mod output;
 mod query;
 mod record;
+mod review;
 mod text;
 
 use std::process::ExitCode;
@@ -92,6 +93,7 @@ mod tests {
                 budget: 400,
                 links: false,
                 verified_by: None,
+                review_status: None,
             }
         )
         .is_ok());

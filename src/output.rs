@@ -15,6 +15,7 @@ pub fn public_record(r: &Record) -> Value {
         "source": r.source,
         "verified_by": r.verified_by,
         "last_verified": r.last_verified,
+        "review_status": crate::review::status(r),
         "tokens": r.tokens,
         "type": r.rtype,
         "attrs": r.attrs,

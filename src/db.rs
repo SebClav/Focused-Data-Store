@@ -36,6 +36,7 @@ impl Store {
     /// Save a record, replacing the one it is (see [`same_identity`]) and
     /// keeping that record's ID. Returns the ID the record now has.
     pub fn upsert(&mut self, mut record: Record) -> String {
+        crate::review::mark_pending(&mut record);
         let existing = self.records.iter().find(|x| same_identity(x, &record));
         if let Some(existing) = existing {
             record.id = existing.id.clone();

@@ -47,6 +47,11 @@ pub enum Command {
         #[command(subcommand)]
         command: FactCommand,
     },
+    /// List pending records or explicitly approve a record after human review
+    Review {
+        #[command(subcommand)]
+        command: ReviewCommand,
+    },
     Proc {
         #[command(subcommand)]
         command: ProcCommand,
@@ -82,6 +87,9 @@ pub enum Command {
         links: bool,
         #[arg(long)]
         verified_by: Option<String>,
+        /// Filter by explicit review status (legacy labels alone are pending)
+        #[arg(long, value_parser = ["approved", "pending"])]
+        review_status: Option<String>,
     },
     Import {
         file: PathBuf,
@@ -165,11 +173,32 @@ impl Command {
                 | Command::Proc { .. }
                 | Command::Rm { .. }
                 | Command::Import { .. }
+                | Command::Review {
+                    command: ReviewCommand::Approve { .. }
+                }
                 | Command::Context {
                     command: ContextCommand::Set { .. } | ContextCommand::Import { .. }
                 }
         )
     }
+}
+
+/// Human review actions. Reviewer identities are self-declared.
+#[derive(Subcommand)]
+pub enum ReviewCommand {
+    /// List records waiting for review, or select another status
+    List {
+        #[arg(long, default_value = "pending", value_parser = ["pending", "approved", "all"])]
+        status: String,
+    },
+    /// Approve the exact record ID after inspecting its contents and source
+    Approve {
+        id: String,
+        #[arg(long)]
+        reviewer: String,
+        #[arg(long)]
+        note: Option<String>,
+    },
 }
 
 /// Operations for creating and importing question-and-answer facts.

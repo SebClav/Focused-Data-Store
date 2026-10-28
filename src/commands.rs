@@ -7,11 +7,12 @@ use std::path::{Path, PathBuf};
 use fds::v4::Kind;
 use serde_json::{json, Value};
 
-use crate::cli::{Command, ContextCommand, FactCommand, ProcCommand};
+use crate::cli::{Command, ContextCommand, FactCommand, ProcCommand, ReviewCommand};
 use crate::db::Store;
 use crate::output::{print_value, public_record};
 use crate::query::query_records;
 use crate::record::{context_id, fact, record, same_identity};
+use crate::review;
 
 /// Run one command and return the process exit code.
 pub fn dispatch(store: &mut Store, command: Command, json: bool) -> Result<u8, String> {
@@ -23,6 +24,12 @@ pub fn dispatch(store: &mut Store, command: Command, json: bool) -> Result<u8, S
         Command::Fact {
             command: FactCommand::Import { file, collection },
         } => fact_import(store, &file, &collection)?,
+        Command::Review { command: ReviewCommand::List { status } } => {
+            review_list(store, &status, json)
+        }
+        Command::Review { command: ReviewCommand::Approve { id, reviewer, note } } => {
+            review_approve(store, &id, &reviewer, note.as_deref(), json)?
+        }
         Command::Proc {
             command: ProcCommand::Add { file, collection },
         } => proc_add(store, &file, &collection)?,
@@ -31,14 +38,17 @@ pub fn dispatch(store: &mut Store, command: Command, json: bool) -> Result<u8, S
         }
         Command::Show { id } => show(store, &id, json)?,
         Command::Rm { id, source } => rm(store, id.as_deref(), source.as_deref())?,
-        Command::Query { text, collection, budget, links, verified_by } => {
+        Command::Query { text, collection, budget, links, verified_by, review_status } => {
             return Ok(query(
                 store,
                 &text.join(" "),
                 collection.as_deref(),
                 budget,
                 links,
-                verified_by.as_deref(),
+                ReviewFilter {
+                    verified_by: verified_by.as_deref(),
+                    status: review_status.as_deref(),
+                },
                 json,
             ));
         }
@@ -76,6 +86,66 @@ pub fn dispatch(store: &mut Store, command: Command, json: bool) -> Result<u8, S
         Command::Init { .. } => unreachable!(),
     }
     Ok(0)
+}
+
+fn review_list(store: &Store, status: &str, json: bool) {
+    let records: Vec<_> = store
+        .records
+        .iter()
+        .filter(|record| status == "all" || review::status(record) == status)
+        .collect();
+    if json {
+        print_value(
+            json!(records.iter().map(|r| public_record(r)).collect::<Vec<_>>()),
+            true,
+        );
+    } else if records.is_empty() {
+        println!("(no records)");
+    } else {
+        for record in records {
+            println!(
+                "{}\t{}\t{}\t{}",
+                review::status(record),
+                record.id,
+                record.collection,
+                record.title
+            );
+        }
+    }
+}
+
+fn review_approve(
+    store: &mut Store,
+    id: &str,
+    reviewer: &str,
+    note: Option<&str>,
+    json: bool,
+) -> Result<(), String> {
+    let matches: Vec<_> = store
+        .records
+        .iter()
+        .enumerate()
+        .filter_map(|(index, record)| (record.id == id).then_some(index))
+        .collect();
+    let index = match matches.as_slice() {
+        [index] => *index,
+        [] => {
+            return Err(format!(
+                "record not found: {id}; review approval requires the full ID"
+            ))
+        }
+        _ => {
+            return Err(format!(
+                "multiple records have ID {id}; review approval is ambiguous"
+            ))
+        }
+    };
+    let record = &mut store.records[index];
+    review::approve(record, reviewer, note)?;
+    let output = public_record(record);
+    store.save()?;
+    print_value(output, json);
+    Ok(())
 }
 
 fn status(store: &Store, json: bool) {
@@ -238,6 +308,12 @@ fn rm(store: &mut Store, id: Option<&str>, source: Option<&str>) -> Result<(), S
     Ok(())
 }
 
+/// Optional provenance and review filters for a query.
+struct ReviewFilter<'a> {
+    verified_by: Option<&'a str>,
+    status: Option<&'a str>,
+}
+
 /// Prints the result and returns exit code 2 when nothing matched.
 fn query(
     store: &Store,
@@ -245,10 +321,22 @@ fn query(
     collection: Option<&str>,
     budget: u32,
     links: bool,
-    verified_by: Option<&str>,
+    review: ReviewFilter<'_>,
     json: bool,
 ) -> u8 {
-    let result = query_records(&store.records, text, collection, budget, links, verified_by);
+    let filtered;
+    let records = if let Some(status) = review.status {
+        filtered = store
+            .records
+            .iter()
+            .filter(|r| review::status(r) == status)
+            .cloned()
+            .collect::<Vec<_>>();
+        filtered.as_slice()
+    } else {
+        store.records.as_slice()
+    };
+    let result = query_records(records, text, collection, budget, links, review.verified_by);
     let found = result["confidence"] != "none";
     print_value(result, json);
     if found {

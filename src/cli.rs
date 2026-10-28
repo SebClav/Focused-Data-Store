@@ -18,6 +18,9 @@ pub struct Cli {
     /// Emit machine-readable JSON
     #[arg(long, global = true)]
     pub json: bool,
+    /// Refuse every command that can modify or create a database
+    #[arg(long, global = true)]
+    pub read_only: bool,
     #[command(subcommand)]
     pub command: Command,
 }

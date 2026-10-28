@@ -36,6 +36,7 @@ fn main() -> ExitCode {
 /// Mutating commands hold the writer lock from database read through save so
 /// concurrent CLI processes cannot silently overwrite each other's updates.
 fn run(cli: Cli) -> Result<u8, String> {
+    ensure_read_only_allows(cli.read_only, &cli.command)?;
     // Initialization creates a new file and therefore does not need a lookup.
     if let Command::Init { name } = &cli.command {
         return db::init(name);
@@ -49,4 +50,50 @@ fn run(cli: Cli) -> Result<u8, String> {
     };
     let mut store = Store::open(path)?;
     commands::dispatch(&mut store, cli.command, cli.json)
+}
+
+fn ensure_read_only_allows(read_only: bool, command: &Command) -> Result<(), String> {
+    if read_only && (matches!(command, Command::Init { .. }) || command.is_write()) {
+        return Err("--read-only prevents commands that create or modify a database".into());
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ensure_read_only_allows;
+    use crate::cli::{Command, FactCommand};
+
+    #[test]
+    fn read_only_rejects_database_creation_and_mutations() {
+        assert!(ensure_read_only_allows(true, &Command::Init { name: "new".into() }).is_err());
+        assert!(ensure_read_only_allows(
+            true,
+            &Command::Fact {
+                command: FactCommand::Add {
+                    question: "q".into(),
+                    answer: "a".into(),
+                    collection: "default".into(),
+                    source: "manual".into(),
+                },
+            }
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn read_only_allows_queries_and_status() {
+        assert!(ensure_read_only_allows(true, &Command::Status).is_ok());
+        assert!(ensure_read_only_allows(
+            true,
+            &Command::Query {
+                text: vec!["context".into()],
+                collection: None,
+                budget: 400,
+                links: false,
+                verified_by: None,
+            }
+        )
+        .is_ok());
+    }
 }

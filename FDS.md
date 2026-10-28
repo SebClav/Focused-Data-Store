@@ -1,15 +1,15 @@
 # FDS agent instructions
 
-Before coding, read agent_guide.fds through the FDS CLI and follow the project rules below.
+Before coding, read `examples/agent_guide.fds` through the FDS CLI and follow the project rules below.
 
 ## Read project context
 
 Use the database explicitly and query only what the task needs:
 
 ~~~sh
-fds --db agent_guide.fds --json status
-fds --db agent_guide.fds --json query "relevant task terms" --collection agent-guidance --budget 400
-fds --db agent_guide.fds --json show RECORD_ID
+fds --read-only --db examples/agent_guide.fds --json status
+fds --read-only --db examples/agent_guide.fds --json query "relevant task terms" --collection agent-guidance --budget 400
+fds --read-only --db examples/agent_guide.fds --json show RECORD_ID
 ~~~
 
 Cite the FDS record IDs and source values that support project-specific decisions. If no record supports a claim, say the information is missing and ask the human; do not guess. Strong and weak are lexical retrieval labels, not truth scores.
@@ -18,7 +18,7 @@ Cite the FDS record IDs and source values that support project-specific decision
 
 Treat the .fds file as read-only unless the human explicitly authorizes a database write. Do not use fact add, fact import, proc add, context set, context import, add, import, or rm without that authorization. This build automatically labels new facts as verified_by=human; never use that behavior to store an agent-generated claim. Put suggestions under “Proposed FDS updates” in your handoff for human review.
 
-This text is an instruction, not a security boundary. The host must enforce file permissions or provide a read-only database connection.
+Use `fds --read-only --db path/to/project.fds ...` for agent queries. This CLI option blocks its own write commands; it is not an operating-system security boundary. The host must also enforce file permissions when other processes must not modify the database.
 
 ## Required handoff
 

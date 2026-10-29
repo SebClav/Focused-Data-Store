@@ -129,6 +129,64 @@ fn mcp_is_read_only_unless_asked_to_write() {
     assert!(text(&out.stderr).contains("--read-only prevents"));
 }
 
+/// Runs `fds mcp --sectors` for the `sales` agent, feeds it the lines on stdin
+/// and returns the parsed replies.
+fn mcp_sectors(sandbox: &Sandbox, global: &[&str], lines: &[&str]) -> Vec<serde_json::Value> {
+    use std::io::Write;
+    use std::process::Stdio;
+    let mut child = Command::new(env!("CARGO_BIN_EXE_fds"))
+        .current_dir(&sandbox.0)
+        .args(global)
+        .args(["mcp", "--sectors", "sectors.json", "--as", "sales"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut stdin = child.stdin.take().unwrap();
+    for l in lines {
+        writeln!(stdin, "{l}").unwrap();
+    }
+    drop(stdin);
+    let out = child.wait_with_output().unwrap();
+    text(&out.stdout)
+        .lines()
+        .map(|l| serde_json::from_str(l).unwrap())
+        .collect()
+}
+
+const REMEMBER: &str = r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"fds_remember","arguments":{"question":"client acme prefers","answer":"invoices in USD"}}}"#;
+const LIST: &str = r#"{"jsonrpc":"2.0","id":2,"method":"tools/list"}"#;
+
+#[test]
+fn read_only_mcp_with_sectors_cannot_write() {
+    let sandbox = Sandbox::new();
+    ok(&sandbox.fds(&["sector", "new", "sales", "--agent"]));
+    let before = fs::read(sandbox.path("sales.fds")).unwrap();
+
+    let replies = mcp_sectors(&sandbox, &["--read-only"], &[REMEMBER, LIST]);
+    assert_eq!(replies[0]["result"]["isError"], true, "{}", replies[0]);
+    let tools = replies[1]["result"]["tools"].as_array().unwrap();
+    assert!(
+        !tools
+            .iter()
+            .any(|t| ["fds_remember", "fds_log", "fds_forget"]
+                .contains(&t["name"].as_str().unwrap())),
+        "{tools:?}"
+    );
+    assert_eq!(fs::read(sandbox.path("sales.fds")).unwrap(), before);
+}
+
+#[test]
+fn mcp_with_sectors_still_writes_without_read_only() {
+    let sandbox = Sandbox::new();
+    ok(&sandbox.fds(&["sector", "new", "sales", "--agent"]));
+    let replies = mcp_sectors(&sandbox, &[], &[REMEMBER]);
+    assert!(replies[0]["result"]["isError"].is_null(), "{}", replies[0]);
+    let out = sandbox.fds(&["--db", "sales.fds", "query", "client acme prefers"]);
+    assert!(text(&out.stdout).contains("invoices in USD"));
+}
+
 #[test]
 fn a_fact_that_replaces_another_collections_answer_says_so() {
     let sandbox = Sandbox::new();

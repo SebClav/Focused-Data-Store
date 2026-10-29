@@ -167,12 +167,12 @@ async fn run(cli: Cli) -> Result<u8, String> {
                 .into_iter()
                 .filter_map(|n| m.get(&n).map(|d| (n, m.path_of(d))))
                 .collect();
-            let memory = mcp::Memory {
+            let memory = (!cli.read_only).then(|| mcp::Memory {
                 path: m.path_of(def),
                 sector: name.to_string(),
                 writer: format!("model:{name}"),
-            };
-            mcp::run(files, Some(memory), def.clearance.clone()).await?;
+            });
+            mcp::run(files, memory, def.clearance.clone()).await?;
             return Ok(0);
         }
         _ => {}

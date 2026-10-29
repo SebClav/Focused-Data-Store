@@ -524,6 +524,17 @@ fn remember(m: &Memory, question: &str, answer: &str, collection: &str) -> Resul
     let _lock = db::lock(&m.path)?;
     let (mut meta, mut records) = db::load(&m.path)?;
     let source = format!("agent:{}", m.sector);
+    let incoming = ops::fact_record(question, answer, collection, &source, &m.writer, &today())?;
+    if let Some(existing) = records
+        .iter()
+        .find(|r| r.id == incoming.id && !r.verified_by.starts_with("model:"))
+    {
+        return Err(format!(
+            "record {} is verified by {}; an agent cannot replace it, and saving the same question would. Ask a person to change it",
+            &existing.id[..12.min(existing.id.len())],
+            existing.verified_by
+        ));
+    }
     let id = ops::upsert_fact(
         &mut records,
         question,
@@ -1039,6 +1050,66 @@ mod tests {
             .clone();
         assert!(forget(&m, &human).is_err(), "a person's record stays");
         assert_eq!(db::load(&path).unwrap().1.len(), 1);
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[tokio::test]
+    async fn remembering_a_question_a_person_verified_does_not_replace_it() {
+        let dir = std::env::temp_dir().join(format!("fds-keep-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("sales.fds");
+        let mut records = Vec::new();
+        ops::upsert_fact(
+            &mut records,
+            "refund window",
+            "30 days",
+            "default",
+            "manual",
+            "human",
+            "2026-10-12",
+        )
+        .unwrap();
+        db::save(&path, &mut DbMeta::default(), &records).unwrap();
+        let before = std::fs::read(&path).unwrap();
+        let m = Memory {
+            path: path.clone(),
+            sector: "sales".into(),
+            writer: "model:sales".into(),
+        };
+
+        let e = remember(&m, "Refund window?", "90 days", "memory").unwrap_err();
+        assert!(e.contains("verified by human"), "{e}");
+        assert_eq!(std::fs::read(&path).unwrap(), before, "file untouched");
+
+        let e = Engine::new(DbMeta::default(), Vec::new());
+        let s = Session {
+            views: vec![View {
+                name: "sales",
+                engine: &e,
+            }],
+            memory: Some(&m),
+        };
+        let r = respond(
+            &json!({"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "fds_remember",
+            "arguments": {"question": "refund window", "answer": "90 days"}}}),
+            &s,
+        )
+        .await
+        .unwrap();
+        assert_eq!(r["result"]["isError"], true, "{r}");
+        let (_, after) = db::load(&path).unwrap();
+        assert_eq!((after.len(), after[0].body.as_str()), (1, "30 days"));
+
+        // An agent's own record is still replaced, and a new question is still saved.
+        let a = remember(&m, "client acme prefers", "invoices in USD", "memory").unwrap();
+        let b = remember(&m, "client acme prefers", "invoices in EUR", "memory").unwrap();
+        assert_eq!(a, b);
+        let (_, after) = db::load(&path).unwrap();
+        assert_eq!(after.len(), 2);
+        assert_eq!(
+            after.iter().find(|r| r.id == a).unwrap().body,
+            "invoices in EUR"
+        );
         std::fs::remove_dir_all(&dir).ok();
     }
 

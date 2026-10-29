@@ -1,5 +1,41 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `--read-only`, a global flag: the command line refuses every command that
+  creates or modifies a database, a sector or the audit file (`init`, `add`,
+  `import`, `fact`, `proc`, `context set|import`, `log`, `journal publish`,
+  `policy add`, `guard`, `rm`, `embed`, `serve`, `sector` except `ls`, and
+  `mcp --write`). It is a guard in this tool, not a security boundary; agents
+  that need to write do it over MCP with their own sector key.
+- `fact add` and `fact import` warn when a fact replaces a different answer,
+  source or collection. A question is one fact per database whatever its
+  collection (SPEC.md §3.1); separate knowledge belongs in a sector.
+- `research/`: the scripts, the questions and the recorded results behind the
+  figures below. `accuracy.py` and `verify.py` also read data from the
+  project they were written in and cannot be re-run from this repository as
+  they are.
+
+### Fixed
+
+- A negation is never a stopword (SPEC.md §4.1, revision 2026-10-29). The
+  standard list contained `no`, `nor`, `not`, `cannot` and `sin`, so
+  "Can users delete records?" and "Cannot users delete records?" had the same
+  token set key, and the stored answer came back as `exact` for its opposite.
+  The list is now 193 words in `conformance/stopwords.txt` and in the Rust
+  tool, with eleven new vectors (the Python suite runs 287 checks, from 276).
+  Question words and auxiliaries (`who`, `how`, `can`, `should`) are still
+  ignored; §4.2 says so.
+
+### Changed
+
+- The command-line tool is the full `fds-cli`; the reduced package that
+  lived at the repository root is gone. The sources were reformatted with
+  rustfmt and `main.rs` was split into the argument definitions and one module
+  per command group.
+
 ## 0.1.0 — agents
 
 First public release, aimed at agents.
@@ -18,8 +54,10 @@ First public release, aimed at agents.
   Python written from the spec alone. The Rust tools and the Python one read the
   same files and judge the same cases the same way.
 - Query with `exact`, `strong`, `weak` or `none`. `strong` now means the first
-  record contains every word of the question: 97–100% precise across five
-  test domains, and no out-of-domain question reaches it.
+  record contains every word of the question: 97–100% precise in the four test
+  domains measured (`research/results/confidence_rules.json`), and no
+  out-of-domain question reaches it. The price is coverage: `strong` is given
+  to 32–36% of the direct questions, against 67–95% before.
 - A change journal: agents write what they did, and why, with `fds_log` over MCP
   (or a person with `fds log`); `fds journal show|export` reads it, and
   `fds journal publish` commits it as a Markdown page to a branch of a git
@@ -65,6 +103,9 @@ First public release, aimed at agents.
 - Measured with real agents (`research/agent/haiku_test/`): twelve Haiku subagents
   built parts of a site with FDS and with the whole data file in context. Same
   accuracy (35/35, nothing invented, traps included); with 508 records the file
-  cost 2.7× the tokens, with 18 records there was no difference.
+  cost 2.7× the tokens, with 18 records there was no difference. One run per
+  condition: a trend, not a statistic.
 - `research/`: 70+ end-to-end checks, scale up to 100,000 records, answer
-  quality in five domains, memory with several agents.
+  quality in four domains, memory with several agents. The records and the
+  queries were written by the same author, and the figures were measured
+  before the stopword revision listed under Unreleased.

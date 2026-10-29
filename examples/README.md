@@ -1,16 +1,40 @@
 # FDS examples
 
-`agent_guide.fds` is a small sample database with owner-provided guidance for coding agents. It demonstrates querying records and citing their IDs and sources.
+## `agent_guide.fds`
 
-Run these commands from the repository root:
+A small sample database with owner-approved guidance for coding agents. It
+shows how to query records and cite their IDs and sources.
+
+Build the tool once (`cargo build --release -p fds-cli`), then, from the
+repository root:
 
 ```sh
-cargo run -- --read-only --db examples/agent_guide.fds --json status
-cargo run -- --read-only --db examples/agent_guide.fds --json query "How should an AI coding agent use this FDS file?" --collection agent-guidance
+fds --read-only --db examples/agent_guide.fds --json status
+fds --read-only --db examples/agent_guide.fds --json query "How should an AI coding agent use this FDS file?" --collection agent-guidance
 ```
 
-Treat this file as read-only unless a human explicitly authorizes changes. It is an example database, not a substitute for project-specific review.
+Treat this file as read-only unless a human explicitly authorizes changes.
 
-This legacy example contains `human` labels from before explicit review metadata was introduced. Those records appear as pending in `review list` until a human inspects and approves them.
+**The records predate the current tool.** The guide still names the file
+`agent_guide.fds`, says that `embed`, `mcp`, `sector`, `log`, `journal`,
+`policy`, `check`, `guard` and `audit` are not implemented, and says that new
+facts are automatically marked as verified by a human. None of that holds any
+more: all those commands exist, `--read-only` is available, and an agent that
+writes over MCP is marked `model:<name>`. The root `FDS.md` has the current
+instructions. The records are left as they were because they carry the owner's
+approval; rewriting them is the owner's decision.
 
-The embedded guide also refers to the old `agent_guide.fds` path and says new facts are automatically marked human. For the current CLI, use the path and review instructions in the root `FDS.md`.
+## `cafe-aurora/`
+
+Four small agents build the home page of a (fictional) café. None of them has
+the business's data pasted into its prompt; all of them query one FDS database.
+`simular_agentes.py` runs the queries each agent would make over MCP, read-only
+and with no model, and measures what each receives. The example and its README
+are in Spanish. From the repository root, after building the tool:
+
+```sh
+python examples/cafe-aurora/simular_agentes.py
+```
+
+On Windows, set `PYTHONIOENCODING=utf-8` first, or the console cannot print the
+script's output.

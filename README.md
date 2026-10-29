@@ -1,69 +1,90 @@
 # FDS
 
-FDS is a local knowledge database for AI agents and applications. It stores project facts, procedures, and context in a portable .fds file. It works alongside SQL or MongoDB: those systems keep operational data, while FDS gives agents approved project guidance to retrieve.
+FDS (Focused Model Data Store) is a database for knowledge that AI systems
+consume. One portable `.fds` file holds verified facts, procedures, document
+fragments and image descriptions, each with its source and who verified it. A
+query returns records and a confidence (`exact`, `strong`, `weak` or `none`);
+FDS never generates text. It works next to SQL or MongoDB: those keep the
+operational data, FDS keeps what agents should be told.
 
-This package contains the command-line core only. It does not include the graphical manager or web UI.
+The status is **experimental** (format 4.0, specification 0.x).
 
-## Build
+## What is here
 
-Install Rust, open a terminal in this folder, then run:
+| Path | What it is |
+|---|---|
+| `fds-core/` | The `.fds` format as a Rust library: versions 2, 3 and 4, CRC-32 on every region, atomic writes |
+| `fds-cli/` | The `fds` command-line tool: facts, procedures, contexts, sectors, MCP, HTTP API and browser manager, change journal, policies, guard and audit |
+| `conformance/` | The format conformance suite and a second implementation in Python, written from the specification |
+| `SPEC.md` | The specification: format, query semantics, sectors, policies |
+| `research/` | Scripts, questions and recorded results behind the figures in `CHANGELOG.md` |
+| `site/how-i-work.html` | The animated page of the flow from a request to human review |
+| `examples/` | A sample agent guide and the `cafe-aurora` multi-agent example |
 
-~~~powershell
-cargo build --release
-~~~
+## Build and test
 
-The executable is target/release/fds.exe on Windows and target/release/fds on macOS/Linux.
+Install Rust, then:
 
-## Tests
-
-Run the CLI and core format tests for every workspace member with:
-
-~~~sh
-cargo test --workspace
-~~~
+```sh
+cargo build --release -p fds-cli      # target/release/fds (fds.exe on Windows)
+cargo test --workspace                # Rust tests
+python conformance/run.py             # the Python implementation, same files
+```
 
 ## Quick start
 
-~~~powershell
-cargo run -- init project
-cargo run -- --db project.fds status
-cargo run -- --db project.fds fact add "What is the service port?" "443" --collection project --source network-spec
-cargo run -- --read-only --db project.fds --json review list
-cargo run -- --read-only --db project.fds --json show RECORD_ID
-cargo run -- --db project.fds review approve RECORD_ID --reviewer "Reviewer name" --note "Checked source"
-cargo run -- --db project.fds --json query "service port" --collection project
-cargo run -- --db project.fds ls --collection project
-cargo run -- --read-only --db project.fds --json query "service port" --collection project --review-status approved
-~~~
+```sh
+fds init project                                   # creates project.fds
+fds fact add "What is the service port?" "443" --collection project --source network-spec
+fds add docs/ -c project                           # ingest a folder of documents
+fds query "service port"
+fds status
+```
 
-Replace `RECORD_ID` with the full ID printed by `fact add` or `review list`. New and replaced records are pending until a human inspects and explicitly approves them. Approval records a reviewer name, date and optional note; updates return the record to pending.
+`fds <command> --help` lists the options, and `fds-cli/GUIDE.md` walks through
+every command.
 
-Use fds --help and fds <command> --help to see the commands available in this build. The .fds file can be copied and versioned with the project. Keep backups before editing it.
+## Several agents
 
-## Teach a coding agent to use FDS
+Give every agent a sector: its own database file, which it can write, plus the
+shared ones it may read and cannot change.
 
-1. Use `examples/agent_guide.fds` as a starting point and keep `FDS.md` in the project instructions path.
-2. Configure the agent's project instructions to read FDS.md before starting work. FDS.md is a portable instruction file; agent products may require referencing it from their own instruction mechanism.
-3. Give the agent read-only access to the .fds database when it only needs project context.
-4. Require the agent to query relevant facts and cite the returned record IDs and sources in its handoff.
-5. Let the human review and enter any proposed knowledge updates.
+```sh
+fds sector new shared
+fds sector new sales --agent --reads shared        # prints the agent's key, once
+fds serve --sectors sectors.json                   # HTTP API, manager and MCP at /mcp
+```
 
-Example read-only query:
+What an agent saves over MCP is marked `model:<name>` and stays in its own
+sector until a person reviews it and makes it everyone's with
+`fds sector promote`. The agent can also write what it did and why with
+`fds_log`, and `fds journal show` reads it back. Policies a person verified
+are enforced by `fds check` and by `fds guard`, which records every decision
+in a hash-chained audit.
 
-~~~powershell
-fds --read-only --db examples/agent_guide.fds --json query "How should an AI coding agent use this FDS file?" --collection agent-guidance
-~~~
+For an agent that is only given the command line, use `--read-only`: the tool
+then refuses every command that creates or modifies a database, a sector or
+the audit file. `FDS.md` is a ready-made instruction file for such an agent.
 
-Query labels describe retrieval matches, not whether a fact is true. Review important facts and their sources. In this build, some advanced command names are present in help but not implemented; do not assume MCP, embeddings, policy enforcement, audit history, or graphical management is available in this CLI-only package.
+## What to keep in mind
 
-A query reports how many of its results are still pending review: a `pending_review` count in the JSON output and a note on stderr. `exact` and `strong` describe the match, never whether anyone reviewed the record. Records added with `add` keep their `ingest` label, and approving a record keeps its earlier label in the `fds.origin` attribute.
-
-Use `--review-status approved` when an agent should receive only explicitly approved records. Existing records marked `verified_by=human` by older versions remain pending until they are explicitly reviewed; `--verified-by human` alone filters the legacy label and does not establish approval. The reviewer name is self-declared, and approval metadata can be altered by anyone with file write access; it is not authenticated or an append-only audit log.
-
-The `--read-only` option blocks database creation and all mutating CLI commands, including review approval. For a security boundary against other programs, also enforce read-only filesystem permissions on the `.fds` file.
-
-The [file format specification](SPEC.md) documents version 4 and legacy version 2 and 3 compatibility.
+- **Labels are not authentication.** `verified_by` and `source` are text in the
+  file. Anyone who can write the file can change them. `--read-only` is a guard
+  in this tool and keys only separate agents that go through `fds serve`; a
+  process that can read the `.fds` files reads everything in them. Use file
+  permissions where that matters.
+- **`exact` is about the words, not the meaning.** Stage 1 compares the words of
+  the question after normalisation. Negations count (`no`, `not`, `cannot`), but
+  question words and auxiliaries (`who`, `how`, `can`, `should`) are ignored, so
+  questions that differ only by one of them share an answer. See SPEC.md §4.2.
+- **A question is one fact per database.** The identifier comes from the
+  question alone (SPEC.md §3.1), so the same question in another collection
+  replaces the fact, and `fact add` warns when it does. Separate knowledge
+  belongs in separate sectors.
+- **The figures are early.** The numbers in `CHANGELOG.md` come from small
+  test sets written by the same author as the records. `research/README.md`
+  says what can and cannot be re-run here.
 
 ## License
 
-FDS is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for the full text.
+Apache License 2.0. See [LICENSE](LICENSE).

@@ -24,16 +24,27 @@ pub async fn embed(model: &str, texts: &[String]) -> Result<Vec<Vec<f32>>, Strin
     for batch in texts.chunks(32) {
         let resp = client
             .post(format!("{}/api/embed", base_url()))
-            .json(&EmbedRequest { model, input: batch })
+            .json(&EmbedRequest {
+                model,
+                input: batch,
+            })
             .send()
             .await
-            .map_err(|e| format!("Ollama not reachable at {} ({e}). Is it running?", base_url()))?;
+            .map_err(|e| {
+                format!(
+                    "Ollama not reachable at {} ({e}). Is it running?",
+                    base_url()
+                )
+            })?;
         if !resp.status().is_success() {
             let status = resp.status();
             let body = resp.text().await.unwrap_or_default();
             return Err(format!("Ollama returned {status}: {body}"));
         }
-        let parsed: EmbedResponse = resp.json().await.map_err(|e| format!("bad Ollama response: {e}"))?;
+        let parsed: EmbedResponse = resp
+            .json()
+            .await
+            .map_err(|e| format!("bad Ollama response: {e}"))?;
         if parsed.embeddings.len() != batch.len() {
             return Err("Ollama returned a different number of embeddings than requested".into());
         }
@@ -45,7 +56,10 @@ pub async fn embed(model: &str, texts: &[String]) -> Result<Vec<Vec<f32>>, Strin
 /// Embeds one query, or returns None if that isn't possible. Queries degrade
 /// to full-text search rather than failing.
 pub async fn embed_query(model: &str, text: &str) -> Option<Vec<f32>> {
-    embed(model, &[text.to_string()]).await.ok().and_then(|mut v| v.pop())
+    embed(model, &[text.to_string()])
+        .await
+        .ok()
+        .and_then(|mut v| v.pop())
 }
 
 #[derive(Serialize)]
@@ -79,17 +93,24 @@ pub async fn describe_image(model: &str, image: &[u8], prompt: &str) -> Result<S
         })
         .send()
         .await
-        .map_err(|e| format!("Ollama not reachable at {} ({e}). Is it running?", base_url()))?;
+        .map_err(|e| {
+            format!(
+                "Ollama not reachable at {} ({e}). Is it running?",
+                base_url()
+            )
+        })?;
     if !resp.status().is_success() {
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
         return Err(format!("Ollama returned {status}: {body}"));
     }
-    let parsed: GenerateResponse = resp.json().await.map_err(|e| format!("bad Ollama response: {e}"))?;
+    let parsed: GenerateResponse = resp
+        .json()
+        .await
+        .map_err(|e| format!("bad Ollama response: {e}"))?;
     let text = parsed.response.trim().to_string();
     if text.is_empty() {
         return Err(format!("`{model}` returned an empty description"));
     }
     Ok(text)
 }
-

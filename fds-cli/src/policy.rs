@@ -66,7 +66,12 @@ pub fn policies(records: &[Record]) -> Vec<Policy> {
         .iter()
         .filter(|r| r.rtype == TYPE && r.verified_by == "human")
         .filter_map(|r| {
-            let a = |k: &str| r.attrs.get(k).map(|v| v.trim().to_string()).filter(|v| !v.is_empty());
+            let a = |k: &str| {
+                r.attrs
+                    .get(k)
+                    .map(|v| v.trim().to_string())
+                    .filter(|v| !v.is_empty())
+            };
             Some(Policy {
                 id: r.id.clone(),
                 subject: a("subject")?,
@@ -74,9 +79,20 @@ pub fn policies(records: &[Record]) -> Vec<Policy> {
                 rule: a("rule")?,
                 min: a("min"),
                 max: a("max"),
-                values: a("values").map(|v| v.split(',').map(|x| x.trim().to_string()).filter(|x| !x.is_empty()).collect()).unwrap_or_default(),
+                values: a("values")
+                    .map(|v| {
+                        v.split(',')
+                            .map(|x| x.trim().to_string())
+                            .filter(|x| !x.is_empty())
+                            .collect()
+                    })
+                    .unwrap_or_default(),
                 unit: a("unit").unwrap_or_default(),
-                text: if r.body.is_empty() { r.title.clone() } else { r.body.clone() },
+                text: if r.body.is_empty() {
+                    r.title.clone()
+                } else {
+                    r.body.clone()
+                },
                 verified_by: r.verified_by.clone(),
                 last_verified: r.last_verified.clone(),
                 guard: a("guard").and_then(|g| serde_json::from_str(&g).ok()),
@@ -137,13 +153,24 @@ impl Decision {
 
     /// One line for a person or an audit log.
     pub fn summary(&self) -> String {
-        let value = self.value.as_deref().map(|v| format!(" = {v}")).unwrap_or_default();
+        let value = self
+            .value
+            .as_deref()
+            .map(|v| format!(" = {v}"))
+            .unwrap_or_default();
         let why = if self.default_applied {
             "no policy matches (the default)".to_string()
         } else {
-            self.because.iter().map(|b| format!("{} {}", b.rule, b.text)).collect::<Vec<_>>().join("; ")
+            self.because
+                .iter()
+                .map(|b| format!("{} {}", b.rule, b.text))
+                .collect::<Vec<_>>()
+                .join("; ")
         };
-        format!("{}: {} {}{value} -- {why}", self.decision, self.action, self.subject)
+        format!(
+            "{}: {} {}{value} -- {why}",
+            self.decision, self.action, self.subject
+        )
     }
 }
 
@@ -174,7 +201,11 @@ pub fn number(s: &str) -> Option<f64> {
     };
     let digits = |x: &str| !x.is_empty() && x.bytes().all(|c| c.is_ascii_digit());
     let mantissa_ok = match mantissa.split_once('.') {
-        Some((i, f)) => (digits(i) || i.is_empty()) && (digits(f) || f.is_empty()) && !(i.is_empty() && f.is_empty()),
+        Some((i, f)) => {
+            (digits(i) || i.is_empty())
+                && (digits(f) || f.is_empty())
+                && !(i.is_empty() && f.is_empty())
+        }
         None => digits(mantissa),
     };
     let exp_ok = exp.map_or(true, |e| digits(e.strip_prefix(['+', '-']).unwrap_or(e)));
@@ -190,7 +221,10 @@ fn violated(p: &Policy, value: Option<&str>) -> Option<String> {
     match p.rule.as_str() {
         "deny" => Some("denied outright".into()),
         "range" => {
-            let (Some(lo), Some(hi)) = (p.min.as_deref().and_then(number), p.max.as_deref().and_then(number)) else {
+            let (Some(lo), Some(hi)) = (
+                p.min.as_deref().and_then(number),
+                p.max.as_deref().and_then(number),
+            ) else {
                 return Some("the policy has no usable min and max".into());
             };
             let Some(v) = value else {
@@ -218,8 +252,17 @@ fn violated(p: &Policy, value: Option<&str>) -> Option<String> {
 
 /// Every policy whose subject and action match is evaluated; one that is
 /// violated is enough to deny. With no match the answer is `default`.
-pub fn check(policies: &[Policy], subject: &str, action: &str, value: Option<&str>, default: Fallback) -> Decision {
-    let matching: Vec<&Policy> = policies.iter().filter(|p| subject_matches(&p.subject, subject) && action_matches(&p.action, action)).collect();
+pub fn check(
+    policies: &[Policy],
+    subject: &str,
+    action: &str,
+    value: Option<&str>,
+    default: Fallback,
+) -> Decision {
+    let matching: Vec<&Policy> = policies
+        .iter()
+        .filter(|p| subject_matches(&p.subject, subject) && action_matches(&p.action, action))
+        .collect();
     let mut denying = Vec::new();
     let mut passing = Vec::new();
     for p in &matching {
@@ -240,7 +283,15 @@ pub fn check(policies: &[Policy], subject: &str, action: &str, value: Option<&st
         return base("deny", denying, false);
     }
     if matching.is_empty() {
-        return base(if default == Fallback::Deny { "deny" } else { "allow" }, Vec::new(), true);
+        return base(
+            if default == Fallback::Deny {
+                "deny"
+            } else {
+                "allow"
+            },
+            Vec::new(),
+            true,
+        );
     }
     base("allow", passing, false)
 }
@@ -273,8 +324,18 @@ mod tests {
     use serde_json::json;
     use std::collections::BTreeMap;
 
-    fn policy(subject: &str, action: &str, rule: &str, extra: &[(&str, &str)], text: &str) -> Record {
-        let mut attrs: BTreeMap<String, String> = [("subject", subject), ("action", action), ("rule", rule)].iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+    fn policy(
+        subject: &str,
+        action: &str,
+        rule: &str,
+        extra: &[(&str, &str)],
+        text: &str,
+    ) -> Record {
+        let mut attrs: BTreeMap<String, String> =
+            [("subject", subject), ("action", action), ("rule", rule)]
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect();
         for (k, v) in extra {
             attrs.insert(k.to_string(), v.to_string());
         }
@@ -298,39 +359,92 @@ mod tests {
 
     fn fridge() -> Vec<Policy> {
         policies(&[
-            policy("fridge.chamber3.setpoint", "set", "range", &[("min", "-20"), ("max", "-16"), ("unit", "\u{b0}C")], "Below -20 \u{b0}C the stock is damaged."),
+            policy(
+                "fridge.chamber3.setpoint",
+                "set",
+                "range",
+                &[("min", "-20"), ("max", "-16"), ("unit", "\u{b0}C")],
+                "Below -20 \u{b0}C the stock is damaged.",
+            ),
             policy("db.prod.*", "drop", "deny", &[], "Nobody drops production."),
-            policy("backup.target", "write", "one_of", &[("values", "copy,staging")], "Backups go to a copy."),
+            policy(
+                "backup.target",
+                "write",
+                "one_of",
+                &[("values", "copy,staging")],
+                "Backups go to a copy.",
+            ),
         ])
     }
 
     #[test]
     fn a_range_allows_inside_and_denies_outside_and_denies_what_is_not_a_number() {
         let p = fridge();
-        let go = |v: &str| check(&p, "fridge.chamber3.setpoint", "set", Some(v), Fallback::Allow);
+        let go = |v: &str| {
+            check(
+                &p,
+                "fridge.chamber3.setpoint",
+                "set",
+                Some(v),
+                Fallback::Allow,
+            )
+        };
         assert_eq!(go("-18").decision, "allow");
         assert_eq!(go("-20").decision, "allow", "bounds are inclusive");
         assert_eq!(go("-16").decision, "allow");
         let d = go("-40");
         assert_eq!(d.decision, "deny");
-        assert_eq!((d.because[0].min.as_deref(), d.because[0].max.as_deref(), d.because[0].unit.as_str()), (Some("-20"), Some("-16"), "\u{b0}C"));
+        assert_eq!(
+            (
+                d.because[0].min.as_deref(),
+                d.because[0].max.as_deref(),
+                d.because[0].unit.as_str()
+            ),
+            (Some("-20"), Some("-16"), "\u{b0}C")
+        );
         assert!(d.because[0].text.contains("stock is damaged"));
         for bad in ["warm", "", "NaN", "inf", "1e999"] {
             assert_eq!(go(bad).decision, "deny", "`{bad}` must not pass a range");
         }
-        assert_eq!(check(&p, "fridge.chamber3.setpoint", "set", None, Fallback::Allow).decision, "deny", "a range with no value cannot be met");
+        assert_eq!(
+            check(&p, "fridge.chamber3.setpoint", "set", None, Fallback::Allow).decision,
+            "deny",
+            "a range with no value cannot be met"
+        );
     }
 
     #[test]
     fn deny_and_one_of_and_prefixes_and_wildcards() {
         let p = fridge();
-        assert_eq!(check(&p, "db.prod.customers", "drop", None, Fallback::Allow).decision, "deny", "a trailing * matches a prefix");
-        assert_eq!(check(&p, "db.prod", "drop", None, Fallback::Allow).decision, "allow", "...and only a prefix: `db.prod` is not `db.prod.`");
-        assert_eq!(check(&p, "db.prod.customers", "read", None, Fallback::Allow).decision, "allow", "another action is not covered");
-        assert_eq!(check(&p, "backup.target", "write", Some("copy"), Fallback::Allow).decision, "allow");
-        assert_eq!(check(&p, "backup.target", "write", Some("prod"), Fallback::Allow).decision, "deny");
+        assert_eq!(
+            check(&p, "db.prod.customers", "drop", None, Fallback::Allow).decision,
+            "deny",
+            "a trailing * matches a prefix"
+        );
+        assert_eq!(
+            check(&p, "db.prod", "drop", None, Fallback::Allow).decision,
+            "allow",
+            "...and only a prefix: `db.prod` is not `db.prod.`"
+        );
+        assert_eq!(
+            check(&p, "db.prod.customers", "read", None, Fallback::Allow).decision,
+            "allow",
+            "another action is not covered"
+        );
+        assert_eq!(
+            check(&p, "backup.target", "write", Some("copy"), Fallback::Allow).decision,
+            "allow"
+        );
+        assert_eq!(
+            check(&p, "backup.target", "write", Some("prod"), Fallback::Allow).decision,
+            "deny"
+        );
         let any = policies(&[policy("vault.*", "*", "deny", &[], "Closed.")]);
-        assert_eq!(check(&any, "vault.keys", "read", None, Fallback::Allow).decision, "deny", "action * matches every action");
+        assert_eq!(
+            check(&any, "vault.keys", "read", None, Fallback::Allow).decision,
+            "deny",
+            "action * matches every action"
+        );
     }
 
     #[test]
@@ -339,8 +453,15 @@ mod tests {
             policy("x.y", "set", "range", &[("min", "0"), ("max", "10")], "A"),
             policy("x.*", "set", "range", &[("min", "5"), ("max", "6")], "B"),
         ]);
-        assert_eq!(check(&both, "x.y", "set", Some("3"), Fallback::Allow).decision, "deny", "inside A, outside B: one denial is enough");
-        assert_eq!(check(&both, "x.y", "set", Some("5.5"), Fallback::Allow).decision, "allow");
+        assert_eq!(
+            check(&both, "x.y", "set", Some("3"), Fallback::Allow).decision,
+            "deny",
+            "inside A, outside B: one denial is enough"
+        );
+        assert_eq!(
+            check(&both, "x.y", "set", Some("5.5"), Fallback::Allow).decision,
+            "allow"
+        );
         let none = check(&both, "other", "set", Some("1"), Fallback::Allow);
         assert!(none.allowed() && none.default_applied && none.because.is_empty());
         let closed = check(&both, "other", "set", Some("1"), Fallback::Deny);
@@ -363,27 +484,67 @@ mod tests {
 
     #[test]
     fn only_a_policy_a_person_verified_counts() {
-        let mut written_by_an_agent = policy("fridge.chamber3.setpoint", "set", "range", &[("min", "-80"), ("max", "40")], "Anything goes.");
+        let mut written_by_an_agent = policy(
+            "fridge.chamber3.setpoint",
+            "set",
+            "range",
+            &[("min", "-80"), ("max", "40")],
+            "Anything goes.",
+        );
         written_by_an_agent.verified_by = "model:ops".into();
         let mut p = fridge();
         p.extend(policies(&[written_by_an_agent]));
-        assert_eq!(check(&p, "fridge.chamber3.setpoint", "set", Some("-40"), Fallback::Allow).decision, "deny", "the agent's policy is not even read");
+        assert_eq!(
+            check(
+                &p,
+                "fridge.chamber3.setpoint",
+                "set",
+                Some("-40"),
+                Fallback::Allow
+            )
+            .decision,
+            "deny",
+            "the agent's policy is not even read"
+        );
         assert_eq!(p.len(), 3);
     }
 
     #[test]
     fn the_same_question_always_gets_the_same_answer() {
         let p = fridge();
-        let first = serde_json::to_string(&check(&p, "fridge.chamber3.setpoint", "set", Some("-40"), Fallback::Allow)).unwrap();
+        let first = serde_json::to_string(&check(
+            &p,
+            "fridge.chamber3.setpoint",
+            "set",
+            Some("-40"),
+            Fallback::Allow,
+        ))
+        .unwrap();
         for _ in 0..50 {
-            assert_eq!(serde_json::to_string(&check(&p, "fridge.chamber3.setpoint", "set", Some("-40"), Fallback::Allow)).unwrap(), first);
+            assert_eq!(
+                serde_json::to_string(&check(
+                    &p,
+                    "fridge.chamber3.setpoint",
+                    "set",
+                    Some("-40"),
+                    Fallback::Allow
+                ))
+                .unwrap(),
+                first
+            );
         }
         assert!(first.contains(r#""decision":"deny""#) && first.contains(r#""because""#));
     }
 
     fn vectors() -> serde_json::Value {
-        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("conformance").join("policy.json");
-        serde_json::from_str(&std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))).unwrap()
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("conformance")
+            .join("policy.json");
+        serde_json::from_str(
+            &std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display())),
+        )
+        .unwrap()
     }
 
     /// conformance/policy.json: the cases every implementation must reproduce.
@@ -422,32 +583,71 @@ mod tests {
             .collect();
         let all = policies(&records);
         for c in v["checks"].as_array().unwrap() {
-            let default = c["default"].as_str().map(|d| Fallback::parse(d).unwrap()).unwrap_or_default();
-            let d = check(&all, c["subject"].as_str().unwrap(), c["action"].as_str().unwrap(), c["value"].as_str(), default);
+            let default = c["default"]
+                .as_str()
+                .map(|d| Fallback::parse(d).unwrap())
+                .unwrap_or_default();
+            let d = check(
+                &all,
+                c["subject"].as_str().unwrap(),
+                c["action"].as_str().unwrap(),
+                c["value"].as_str(),
+                default,
+            );
             let mut because: Vec<String> = d.because.iter().map(|b| b.text.clone()).collect();
             because.sort();
-            let mut want: Vec<String> = c["because"].as_array().unwrap().iter().map(|b| b.as_str().unwrap().to_string()).collect();
+            let mut want: Vec<String> = c["because"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|b| b.as_str().unwrap().to_string())
+                .collect();
             want.sort();
             let label = format!("{} {} = {:?}", c["action"], c["subject"], c["value"]);
             assert_eq!(d.decision, c["decision"].as_str().unwrap(), "{label}");
-            assert_eq!(d.default_applied, c["default_applied"].as_bool().unwrap(), "{label}");
+            assert_eq!(
+                d.default_applied,
+                c["default_applied"].as_bool().unwrap(),
+                "{label}"
+            );
             assert_eq!(because, want, "{label}");
         }
         for c in v["fill"].as_array().unwrap() {
             let got = fill(c["template"].as_str().unwrap(), &c["args"]);
-            assert_eq!(got.as_deref(), c["expected"].as_str(), "fill {} {}", c["template"], c["args"]);
+            assert_eq!(
+                got.as_deref(),
+                c["expected"].as_str(),
+                "fill {} {}",
+                c["template"],
+                c["args"]
+            );
         }
     }
 
     #[test]
     fn a_guard_template_fills_from_the_call_and_refuses_what_is_missing() {
         let args = json!({"chamber": "chamber3", "celsius": -40, "dry_run": false, "name": "x"});
-        assert_eq!(fill("fridge.{chamber}.setpoint", &args).as_deref(), Some("fridge.chamber3.setpoint"));
+        assert_eq!(
+            fill("fridge.{chamber}.setpoint", &args).as_deref(),
+            Some("fridge.chamber3.setpoint")
+        );
         assert_eq!(fill("{celsius}", &args).as_deref(), Some("-40"));
         assert_eq!(fill("{dry_run}", &args).as_deref(), Some("false"));
         assert_eq!(fill("plain", &args).as_deref(), Some("plain"));
-        assert_eq!(fill("a.{missing}", &args), None, "a call without the argument cannot be mapped");
-        assert_eq!(fill("{chamber", &args), None, "an unclosed brace is refused");
-        assert_eq!(fill("{nested}", &json!({"nested": {"a": 1}})), None, "objects are not values");
+        assert_eq!(
+            fill("a.{missing}", &args),
+            None,
+            "a call without the argument cannot be mapped"
+        );
+        assert_eq!(
+            fill("{chamber", &args),
+            None,
+            "an unclosed brace is refused"
+        );
+        assert_eq!(
+            fill("{nested}", &json!({"nested": {"a": 1}})),
+            None,
+            "objects are not values"
+        );
     }
 }

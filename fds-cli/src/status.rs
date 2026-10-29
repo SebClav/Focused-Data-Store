@@ -65,10 +65,19 @@ fn human_bytes(n: u64) -> String {
 pub fn print_summary(s: &serde_json::Value) {
     let collections = s["collections"]
         .as_object()
-        .map(|m| m.iter().map(|(k, v)| format!("{k} ({v})")).collect::<Vec<_>>().join(", "))
+        .map(|m| {
+            m.iter()
+                .map(|(k, v)| format!("{k} ({v})"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        })
         .unwrap_or_default();
     let model = s["embedding_model"].as_str().unwrap_or("");
-    println!("database     {}  ({})", s["database"].as_str().unwrap_or(""), human_bytes(s["bytes"].as_u64().unwrap_or(0)));
+    println!(
+        "database     {}  ({})",
+        s["database"].as_str().unwrap_or(""),
+        human_bytes(s["bytes"].as_u64().unwrap_or(0))
+    );
     println!(
         "records      {}  ({} facts · {} procedures · {} knowledge · {} contexts)",
         s["records"], s["facts"], s["procedures"], s["knowledge"], s["contexts"]
@@ -77,7 +86,14 @@ pub fn print_summary(s: &serde_json::Value) {
         let list: Vec<String> = types.iter().map(|(k, v)| format!("{k} ({v})")).collect();
         println!("types        {}", list.join(", "));
     }
-    println!("collections  {}", if collections.is_empty() { "—".to_string() } else { collections });
+    println!(
+        "collections  {}",
+        if collections.is_empty() {
+            "—".to_string()
+        } else {
+            collections
+        }
+    );
     if model.is_empty() {
         println!("embeddings   none  (full-text only; run `fds embed` to add)");
     } else {
@@ -98,7 +114,11 @@ pub fn print_hit(h: &Hit) {
         Some(q) if h.kind != Kind::Knowledge => q.as_str(),
         _ => h.title.as_str(),
     };
-    let kind = if h.rtype.is_empty() { h.kind.as_str().to_string() } else { format!("{}/{}", h.kind.as_str(), h.rtype) };
+    let kind = if h.rtype.is_empty() {
+        h.kind.as_str().to_string()
+    } else {
+        format!("{}/{}", h.kind.as_str(), h.rtype)
+    };
     println!("[{kind}] {}  {}", short(&h.id), head);
     for line in h.body.lines() {
         println!("    {line}");
@@ -139,7 +159,12 @@ pub fn print_record(r: &Record) {
     println!("verified_by   {}", r.verified_by);
     println!("last_verified {}", r.last_verified);
     println!("tokens        {}", r.tokens);
-    println!("embedding     {}", r.embedding.as_ref().map_or("none".to_string(), |e| format!("{} dims", e.len())));
+    println!(
+        "embedding     {}",
+        r.embedding
+            .as_ref()
+            .map_or("none".to_string(), |e| format!("{} dims", e.len()))
+    );
     println!();
     println!("{}", r.body);
 }
@@ -147,11 +172,22 @@ pub fn print_record(r: &Record) {
 pub fn print_row(r: &Record) {
     let label = r.question.as_deref().unwrap_or(&r.title);
     let label: String = label.chars().take(70).collect();
-    println!("{}  {:<9}  {:<14}  {}", short(&r.id), r.kind.as_str(), r.collection, label);
+    println!(
+        "{}  {:<9}  {:<14}  {}",
+        short(&r.id),
+        r.kind.as_str(),
+        r.collection,
+        label
+    );
 }
 
 pub fn print_context(b: &ContextBundle) {
-    println!("context  {}  ({} records, {} tokens)", b.name, b.records.len(), b.tokens);
+    println!(
+        "context  {}  ({} records, {} tokens)",
+        b.name,
+        b.records.len(),
+        b.tokens
+    );
     println!("hash     {}", b.hash);
     println!();
     if !b.instructions.is_empty() {
@@ -164,7 +200,10 @@ pub fn print_context(b: &ContextBundle) {
         print_hit(h);
     }
     if !b.missing.is_empty() {
-        println!("links to records that do not exist yet: {}", b.missing.join(", "));
+        println!(
+            "links to records that do not exist yet: {}",
+            b.missing.join(", ")
+        );
     }
 }
 
@@ -180,7 +219,11 @@ pub fn print_plan(p: &crate::etl::Plan) {
             Status::Error => "✗ error    ",
             Status::Unchanged => continue,
         };
-        let note = r.message.as_deref().map(|m| format!("  — {m}")).unwrap_or_default();
+        let note = r
+            .message
+            .as_deref()
+            .map(|m| format!("  — {m}"))
+            .unwrap_or_default();
         println!("{mark}  row {:<4} {}{note}", r.row, r.label);
     }
     let s = &p.summary;
@@ -192,7 +235,12 @@ pub fn print_plan(p: &crate::etl::Plan) {
         s.unchanged,
         s.duplicate,
         s.error,
-        if p.dry_run { "   (dry run: nothing written)" } else if p.written { "" } else { "   (nothing to write)" }
+        if p.dry_run {
+            "   (dry run: nothing written)"
+        } else if p.written {
+            ""
+        } else {
+            "   (nothing to write)"
+        }
     );
 }
-

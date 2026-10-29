@@ -6,10 +6,19 @@ use fds::v4::{Kind, Record};
 
 use crate::text::{stable_id, today, word_count};
 
-const SKIP_DIRS: &[&str] = &["target", "node_modules", ".venv", "venv", "__pycache__", "dist", "build"];
+const SKIP_DIRS: &[&str] = &[
+    "target",
+    "node_modules",
+    ".venv",
+    "venv",
+    "__pycache__",
+    "dist",
+    "build",
+];
 const CODE_EXT: &[&str] = &[
     "rs", "py", "js", "ts", "tsx", "jsx", "go", "java", "c", "h", "cpp", "hpp", "cs", "rb", "php",
-    "swift", "kt", "sh", "ps1", "sql", "toml", "yaml", "yml", "json", "html", "css", "vue", "svelte",
+    "swift", "kt", "sh", "ps1", "sql", "toml", "yaml", "yml", "json", "html", "css", "vue",
+    "svelte",
 ];
 const TEXT_EXT: &[&str] = &["txt", "rst", "text"];
 const MD_EXT: &[&str] = &["md", "markdown"];
@@ -40,7 +49,9 @@ fn walk(p: &Path, out: &mut Vec<PathBuf>) {
         out.push(p.to_path_buf());
         return;
     }
-    let Ok(entries) = std::fs::read_dir(p) else { return };
+    let Ok(entries) = std::fs::read_dir(p) else {
+        return;
+    };
     for e in entries.flatten() {
         let path = e.path();
         let name = e.file_name().to_string_lossy().to_string();
@@ -60,7 +71,13 @@ fn walk(p: &Path, out: &mut Vec<PathBuf>) {
 pub fn source_name(path: &Path) -> String {
     let rel = std::env::current_dir()
         .ok()
-        .and_then(|cwd| path.canonicalize().ok().and_then(|abs| abs.strip_prefix(&cwd.canonicalize().ok()?).ok().map(|r| r.to_path_buf())))
+        .and_then(|cwd| {
+            path.canonicalize().ok().and_then(|abs| {
+                abs.strip_prefix(&cwd.canonicalize().ok()?)
+                    .ok()
+                    .map(|r| r.to_path_buf())
+            })
+        })
         .unwrap_or_else(|| path.to_path_buf());
     rel.to_string_lossy().replace('\\', "/")
 }
@@ -94,7 +111,12 @@ pub fn fragments_text(text: &str, name: &str, ext: &str) -> Option<Vec<(String, 
     } else {
         return None;
     };
-    Some(frags.into_iter().filter(|(_, b)| !b.trim().is_empty()).collect())
+    Some(
+        frags
+            .into_iter()
+            .filter(|(_, b)| !b.trim().is_empty())
+            .collect(),
+    )
 }
 
 pub const MAX_DOCUMENT_BYTES: usize = MAX_FILE_BYTES as usize;
@@ -102,7 +124,12 @@ pub const MAX_DOCUMENT_BYTES: usize = MAX_FILE_BYTES as usize;
 /// Every extension `fragments_text` accepts. The manager is handed this list
 /// rather than keeping its own copy, so the two cannot drift apart.
 pub fn document_extensions() -> Vec<&'static str> {
-    MD_EXT.iter().chain(TEXT_EXT).chain(CODE_EXT).copied().collect()
+    MD_EXT
+        .iter()
+        .chain(TEXT_EXT)
+        .chain(CODE_EXT)
+        .copied()
+        .collect()
 }
 
 fn markdown(text: &str, name: &str) -> Vec<(String, String)> {
@@ -115,7 +142,11 @@ fn markdown(text: &str, name: &str) -> Vec<(String, String)> {
         if stack.is_empty() {
             name.to_string()
         } else {
-            stack.iter().map(|(_, t)| t.as_str()).collect::<Vec<_>>().join(" > ")
+            stack
+                .iter()
+                .map(|(_, t)| t.as_str())
+                .collect::<Vec<_>>()
+                .join(" > ")
         }
     };
 
@@ -124,7 +155,11 @@ fn markdown(text: &str, name: &str) -> Vec<(String, String)> {
         if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
             in_fence = !in_fence;
         }
-        let level = if in_fence { 0 } else { trimmed.chars().take_while(|&c| c == '#').count() };
+        let level = if in_fence {
+            0
+        } else {
+            trimmed.chars().take_while(|&c| c == '#').count()
+        };
         if (1..=6).contains(&level) && trimmed.chars().nth(level) == Some(' ') {
             out.push((heading_path(&stack), std::mem::take(&mut buf)));
             let title = trimmed[level..].trim().to_string();
@@ -138,14 +173,18 @@ fn markdown(text: &str, name: &str) -> Vec<(String, String)> {
         buf.push('\n');
     }
     out.push((heading_path(&stack), buf));
-    out.into_iter().map(|(t, b)| (t, b.trim().to_string())).collect()
+    out.into_iter()
+        .map(|(t, b)| (t, b.trim().to_string()))
+        .collect()
 }
 
 fn paragraphs(text: &str, name: &str) -> Vec<(String, String)> {
     let mut out = Vec::new();
     let mut current = String::new();
     for para in text.split("\n\n").map(str::trim).filter(|p| !p.is_empty()) {
-        if !current.is_empty() && word_count(&current) as usize + word_count(para) as usize > TEXT_TARGET_WORDS {
+        if !current.is_empty()
+            && word_count(&current) as usize + word_count(para) as usize > TEXT_TARGET_WORDS
+        {
             out.push(std::mem::take(&mut current));
         }
         if !current.is_empty() {
@@ -159,7 +198,16 @@ fn paragraphs(text: &str, name: &str) -> Vec<(String, String)> {
     let n = out.len();
     out.into_iter()
         .enumerate()
-        .map(|(i, b)| (if n > 1 { format!("{name} ({}/{n})", i + 1) } else { name.to_string() }, b))
+        .map(|(i, b)| {
+            (
+                if n > 1 {
+                    format!("{name} ({}/{n})", i + 1)
+                } else {
+                    name.to_string()
+                },
+                b,
+            )
+        })
         .collect()
 }
 
@@ -170,13 +218,21 @@ fn code(text: &str, name: &str) -> Vec<(String, String)> {
         .enumerate()
         .map(|(i, chunk)| {
             let start = i * CODE_WINDOW + 1;
-            (format!("{name}:{}-{}", start, start + chunk.len() - 1), chunk.join("\n"))
+            (
+                format!("{name}:{}-{}", start, start + chunk.len() - 1),
+                chunk.join("\n"),
+            )
         })
         .collect()
 }
 
 /// Replaces all knowledge records from `source` with fresh ones.
-pub fn upsert(records: &mut Vec<Record>, source: &str, collection: &str, frags: Vec<(String, String)>) -> usize {
+pub fn upsert(
+    records: &mut Vec<Record>,
+    source: &str,
+    collection: &str,
+    frags: Vec<(String, String)>,
+) -> usize {
     records.retain(|r| !(r.kind == Kind::Knowledge && r.source == source));
     let date = today();
     let n = frags.len();
@@ -211,12 +267,18 @@ mod tests {
         let f = markdown(md, "doc.md");
         let titles: Vec<&str> = f.iter().map(|(t, _)| t.as_str()).collect();
         assert_eq!(titles, vec!["doc.md", "A", "A > B", "C"]);
-        assert!(f[2].1.contains("# not a heading"), "fenced # must stay in the body");
+        assert!(
+            f[2].1.contains("# not a heading"),
+            "fenced # must stay in the body"
+        );
     }
 
     #[test]
     fn code_windows_are_40_lines() {
-        let src = (1..=85).map(|i| format!("line {i}")).collect::<Vec<_>>().join("\n");
+        let src = (1..=85)
+            .map(|i| format!("line {i}"))
+            .collect::<Vec<_>>()
+            .join("\n");
         let f = code(&src, "x.rs");
         assert_eq!(f.len(), 3);
         assert_eq!(f[0].0, "x.rs:1-40");
@@ -226,8 +288,18 @@ mod tests {
     #[test]
     fn upsert_replaces_previous_fragments() {
         let mut recs = Vec::new();
-        upsert(&mut recs, "a.md", "default", vec![("t".into(), "one".into()), ("t".into(), "two".into())]);
-        upsert(&mut recs, "a.md", "default", vec![("t".into(), "three".into())]);
+        upsert(
+            &mut recs,
+            "a.md",
+            "default",
+            vec![("t".into(), "one".into()), ("t".into(), "two".into())],
+        );
+        upsert(
+            &mut recs,
+            "a.md",
+            "default",
+            vec![("t".into(), "three".into())],
+        );
         assert_eq!(recs.len(), 1);
         assert_eq!(recs[0].body, "three");
     }

@@ -79,10 +79,16 @@ pub fn record(d: &Draft, verified_by: &str) -> Result<Record, String> {
         return Err("a journal entry needs a summary: one line saying what changed".into());
     }
     if summary.chars().count() > 200 {
-        return Err("the summary is one line, 200 characters at most; put the detail in `why`".into());
+        return Err(
+            "the summary is one line, 200 characters at most; put the detail in `why`".into(),
+        );
     }
     let why = d.why.trim();
-    let body = if why.is_empty() { summary.clone() } else { why.to_string() };
+    let body = if why.is_empty() {
+        summary.clone()
+    } else {
+        why.to_string()
+    };
 
     let mut files: Vec<String> = Vec::new();
     for f in d.files.iter().map(|f| f.trim()).filter(|f| !f.is_empty()) {
@@ -93,7 +99,14 @@ pub fn record(d: &Draft, verified_by: &str) -> Result<Record, String> {
 
     let mut attrs = std::collections::BTreeMap::new();
     attrs.insert("at".to_string(), d.at.to_string());
-    for (k, v) in [("agent", d.agent), ("branch", d.branch), ("commit", d.commit), ("role", d.role), ("status", d.status), ("to", d.to)] {
+    for (k, v) in [
+        ("agent", d.agent),
+        ("branch", d.branch),
+        ("commit", d.commit),
+        ("role", d.role),
+        ("status", d.status),
+        ("to", d.to),
+    ] {
         if !v.trim().is_empty() {
             attrs.insert(k.to_string(), v.trim().to_string());
         }
@@ -102,9 +115,18 @@ pub fn record(d: &Draft, verified_by: &str) -> Result<Record, String> {
         attrs.insert("files".to_string(), files.join("\n"));
     }
 
-    let source = if d.agent.trim().is_empty() { "cli".to_string() } else { format!("agent:{}", d.agent.trim()) };
+    let source = if d.agent.trim().is_empty() {
+        "cli".to_string()
+    } else {
+        format!("agent:{}", d.agent.trim())
+    };
     Ok(Record {
-        id: stable_id(&format!("change:{}:{}:{}", d.agent.trim(), d.at, canonical(&summary))),
+        id: stable_id(&format!(
+            "change:{}:{}:{}",
+            d.agent.trim(),
+            d.at,
+            canonical(&summary)
+        )),
         kind: Kind::Knowledge,
         collection: COLLECTION.to_string(),
         question: None,
@@ -135,7 +157,11 @@ pub fn append(path: &Path, mut rec: Record) -> Result<String, String> {
         .max()
         .unwrap_or(0)
         + 1;
-    let seq = records.iter().find(|r| r.id == id).and_then(|r| r.attrs.get("seq").cloned()).unwrap_or_else(|| next.to_string());
+    let seq = records
+        .iter()
+        .find(|r| r.id == id)
+        .and_then(|r| r.attrs.get("seq").cloned())
+        .unwrap_or_else(|| next.to_string());
     rec.attrs.insert("seq".to_string(), seq);
     match records.iter().position(|r| r.id == id) {
         Some(i) => records[i] = rec,
@@ -153,14 +179,26 @@ pub fn entry_of(r: &Record, sector: &str) -> Option<Entry> {
     let summary = r.title.clone();
     Some(Entry {
         id: r.id.clone(),
-        why: if r.body == summary { String::new() } else { r.body.clone() },
+        why: if r.body == summary {
+            String::new()
+        } else {
+            r.body.clone()
+        },
         summary,
-        files: attr("files").lines().map(str::to_string).filter(|f| !f.is_empty()).collect(),
+        files: attr("files")
+            .lines()
+            .map(str::to_string)
+            .filter(|f| !f.is_empty())
+            .collect(),
         branch: attr("branch"),
         commit: attr("commit"),
         agent: attr("agent"),
         // A record written by hand may lack `at`: fall back to the day it was verified.
-        at: r.attrs.get("at").cloned().unwrap_or_else(|| r.last_verified.clone()),
+        at: r
+            .attrs
+            .get("at")
+            .cloned()
+            .unwrap_or_else(|| r.last_verified.clone()),
         reviewed: r.verified_by == "human",
         sector: sector.to_string(),
         role: attr("role"),
@@ -189,7 +227,11 @@ pub fn entries(records: &[Record], sector: &str, f: &Filter) -> Vec<Entry> {
         .filter(|e| f.branch.as_deref().map_or(true, |b| e.branch == b))
         .filter(|e| f.agent.as_deref().map_or(true, |a| e.agent == a))
         .filter(|e| f.role.as_deref().map_or(true, |r| e.role == r))
-        .filter(|e| f.since.as_deref().map_or(true, |s| e.at.get(..10).unwrap_or(&e.at) >= s))
+        .filter(|e| {
+            f.since
+                .as_deref()
+                .map_or(true, |s| e.at.get(..10).unwrap_or(&e.at) >= s)
+        })
         .collect();
     sort_newest_first(&mut out);
     if let Some(n) = f.limit {
@@ -220,7 +262,11 @@ pub fn text(entries: &[Entry]) -> String {
     }
     let mut out = String::new();
     for e in entries {
-        let when = format!("{} {}", e.at.get(..10).unwrap_or(&e.at), e.at.get(11..16).unwrap_or(""));
+        let when = format!(
+            "{} {}",
+            e.at.get(..10).unwrap_or(&e.at),
+            e.at.get(11..16).unwrap_or("")
+        );
         let place = [
             (!e.branch.is_empty()).then(|| e.branch.clone()),
             (!e.commit.is_empty()).then(|| format!("@{}", e.commit)),
@@ -322,7 +368,13 @@ impl Step {
         if !e.status.is_empty() {
             text.push_str(&format!(" \u{b7} {}", e.status));
         }
-        Step { at: e.at.clone(), order: e.seq, actor, text, from: "journal".into() }
+        Step {
+            at: e.at.clone(),
+            order: e.seq,
+            actor,
+            text,
+            from: "journal".into(),
+        }
     }
 }
 
@@ -332,7 +384,9 @@ pub fn sort_oldest_first(v: &mut [Step]) {
 }
 
 fn oldest_first(a: &Step, b: &Step) -> std::cmp::Ordering {
-    a.at.cmp(&b.at).then(a.order.cmp(&b.order)).then_with(|| a.text.cmp(&b.text))
+    a.at.cmp(&b.at)
+        .then(a.order.cmp(&b.order))
+        .then_with(|| a.text.cmp(&b.text))
 }
 
 /// The black box as numbered lines: `#04 [reasoning] technical decision delegated -> decision agent`.
@@ -343,7 +397,13 @@ pub fn timeline_text(steps: &[Step]) -> String {
     let width = steps.len().to_string().len().max(2);
     let mut out = String::new();
     for (i, st) in steps.iter().enumerate() {
-        out.push_str(&format!("#{:0w$} [{}] {}\n", i + 1, st.actor, st.text, w = width));
+        out.push_str(&format!(
+            "#{:0w$} [{}] {}\n",
+            i + 1,
+            st.actor,
+            st.text,
+            w = width
+        ));
     }
     out
 }
@@ -359,15 +419,26 @@ pub fn read_text(views: &[(&str, &[Record])], f: &Filter, timeline: bool) -> Str
     let mut all: Vec<Entry> = Vec::new();
     for (name, records) in views {
         let label = if views.len() > 1 { *name } else { "" };
-        all.extend(entries(records, label, &Filter { limit: None, ..f.clone() }));
+        all.extend(entries(
+            records,
+            label,
+            &Filter {
+                limit: None,
+                ..f.clone()
+            },
+        ));
     }
     sort_newest_first(&mut all);
     if let Some(n) = f.limit {
         all.truncate(n);
     }
     if all.is_empty() {
-        let filtered = f.branch.is_some() || f.agent.is_some() || f.role.is_some() || f.since.is_some();
-        return format!("el registro est\u{e1} vac\u{ed}o{}\n", if filtered { " con esos filtros" } else { "" });
+        let filtered =
+            f.branch.is_some() || f.agent.is_some() || f.role.is_some() || f.since.is_some();
+        return format!(
+            "el registro est\u{e1} vac\u{ed}o{}\n",
+            if filtered { " con esos filtros" } else { "" }
+        );
     }
     if !timeline {
         return text(&all);
@@ -380,7 +451,11 @@ pub fn read_text(views: &[(&str, &[Record])], f: &Filter, timeline: bool) -> Str
     out.push_str("\ndetail:\n");
     for (i, (_, e)) in pairs.iter().enumerate() {
         out.push_str(&format!("#{:0w$} {}\n", i + 1, e.summary, w = width));
-        let when = format!("{} {}", e.at.get(..10).unwrap_or(&e.at), e.at.get(11..16).unwrap_or(""));
+        let when = format!(
+            "{} {}",
+            e.at.get(..10).unwrap_or(&e.at),
+            e.at.get(11..16).unwrap_or("")
+        );
         let mut facts = vec![format!("by {}", who(e))];
         if !e.protected {
             facts.push(when.trim_end().to_string());
@@ -434,24 +509,43 @@ pub fn timeline_markdown(steps: &[Step], name: &str) -> String {
 /// empty strings when there is none. Used to fill in `fds log`.
 pub fn git_context() -> (String, String) {
     let here = Path::new(".");
-    let branch = git(here, &["symbolic-ref", "--quiet", "--short", "HEAD"], None).unwrap_or_default();
+    let branch =
+        git(here, &["symbolic-ref", "--quiet", "--short", "HEAD"], None).unwrap_or_default();
     let commit = git(here, &["rev-parse", "--short", "HEAD"], None).unwrap_or_default();
     (branch, commit)
 }
 
 fn git(repo: &Path, args: &[&str], input: Option<&[u8]>) -> Result<String, String> {
     let mut cmd = Command::new("git");
-    cmd.arg("-C").arg(repo).args(args).stdout(Stdio::piped()).stderr(Stdio::piped());
-    cmd.stdin(if input.is_some() { Stdio::piped() } else { Stdio::null() });
-    let mut child = cmd.spawn().map_err(|e| format!("cannot run git ({e}); is it installed and on the PATH?"))?;
+    cmd.arg("-C")
+        .arg(repo)
+        .args(args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    cmd.stdin(if input.is_some() {
+        Stdio::piped()
+    } else {
+        Stdio::null()
+    });
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| format!("cannot run git ({e}); is it installed and on the PATH?"))?;
     if let Some(bytes) = input {
         let mut stdin = child.stdin.take().ok_or("cannot write to git")?;
-        stdin.write_all(bytes).map_err(|e| format!("cannot write to git: {e}"))?;
+        stdin
+            .write_all(bytes)
+            .map_err(|e| format!("cannot write to git: {e}"))?;
     }
-    let out = child.wait_with_output().map_err(|e| format!("git did not finish: {e}"))?;
+    let out = child
+        .wait_with_output()
+        .map_err(|e| format!("git did not finish: {e}"))?;
     if !out.status.success() {
         let why = String::from_utf8_lossy(&out.stderr);
-        return Err(format!("git {} failed: {}", args.first().unwrap_or(&""), why.trim()));
+        return Err(format!(
+            "git {} failed: {}",
+            args.first().unwrap_or(&""),
+            why.trim()
+        ));
     }
     Ok(String::from_utf8_lossy(&out.stdout).trim_end().to_string())
 }
@@ -468,11 +562,22 @@ pub struct Published {
 /// the objects are written, the branch reference is moved, and nothing else
 /// changes. The working tree, the index and the branch that is checked out stay
 /// as they are, so it is safe to run while someone is editing.
-pub fn publish(repo: &Path, branch: &str, files: &[(&str, &[u8])], message: &str) -> Result<Published, String> {
-    git(repo, &["rev-parse", "--git-dir"], None).map_err(|_| format!("{} is not a git repository", repo.display()))?;
+pub fn publish(
+    repo: &Path,
+    branch: &str,
+    files: &[(&str, &[u8])],
+    message: &str,
+) -> Result<Published, String> {
+    git(repo, &["rev-parse", "--git-dir"], None)
+        .map_err(|_| format!("{} is not a git repository", repo.display()))?;
     let reference = format!("refs/heads/{branch}");
-    git(repo, &["check-ref-format", &reference], None).map_err(|_| format!("`{branch}` is not a valid branch name"))?;
-    if git(repo, &["symbolic-ref", "--quiet", "--short", "HEAD"], None).ok().as_deref() == Some(branch) {
+    git(repo, &["check-ref-format", &reference], None)
+        .map_err(|_| format!("`{branch}` is not a valid branch name"))?;
+    if git(repo, &["symbolic-ref", "--quiet", "--short", "HEAD"], None)
+        .ok()
+        .as_deref()
+        == Some(branch)
+    {
         return Err(format!("`{branch}` is the branch checked out here; switch to another branch first, or publish from another clone"));
     }
 
@@ -483,10 +588,20 @@ pub fn publish(repo: &Path, branch: &str, files: &[(&str, &[u8])], message: &str
     }
     let tree = git(repo, &["mktree"], Some(tree.as_bytes()))?;
 
-    let parent = git(repo, &["rev-parse", "--verify", "--quiet", &reference], None).ok().filter(|p| !p.is_empty());
+    let parent = git(
+        repo,
+        &["rev-parse", "--verify", "--quiet", &reference],
+        None,
+    )
+    .ok()
+    .filter(|p| !p.is_empty());
     if let Some(p) = &parent {
         if git(repo, &["rev-parse", &format!("{p}^{{tree}}")], None)? == tree {
-            return Ok(Published { commit: p.clone(), unchanged: true, created: false });
+            return Ok(Published {
+                commit: p.clone(),
+                unchanged: true,
+                created: false,
+            });
         }
     }
 
@@ -502,14 +617,31 @@ pub fn publish(repo: &Path, branch: &str, files: &[(&str, &[u8])], message: &str
         update.push(p.as_str());
     }
     git(repo, &update, None)?;
-    Ok(Published { commit, unchanged: false, created: parent.is_none() })
+    Ok(Published {
+        commit,
+        unchanged: false,
+        created: parent.is_none(),
+    })
 }
 
 /// The agents and branches present, for a one-line summary.
 pub fn summary_line(entries: &[Entry]) -> String {
-    let agents: BTreeSet<&str> = entries.iter().map(|e| e.agent.as_str()).filter(|a| !a.is_empty()).collect();
-    let branches: BTreeSet<&str> = entries.iter().map(|e| e.branch.as_str()).filter(|b| !b.is_empty()).collect();
-    format!("{} entries, {} agent(s), {} branch(es)", entries.len(), agents.len(), branches.len())
+    let agents: BTreeSet<&str> = entries
+        .iter()
+        .map(|e| e.agent.as_str())
+        .filter(|a| !a.is_empty())
+        .collect();
+    let branches: BTreeSet<&str> = entries
+        .iter()
+        .map(|e| e.branch.as_str())
+        .filter(|b| !b.is_empty())
+        .collect();
+    format!(
+        "{} entries, {} agent(s), {} branch(es)",
+        entries.len(),
+        agents.len(),
+        branches.len()
+    )
 }
 
 #[cfg(test)]
@@ -517,28 +649,66 @@ mod tests {
     use super::*;
 
     fn draft<'a>(summary: &'a str, at: &'a str, files: &'a [String]) -> Draft<'a> {
-        Draft { summary, why: "", files, branch: "feat/login", commit: "a1b2c3d", agent: "backend", at, ..Default::default() }
+        Draft {
+            summary,
+            why: "",
+            files,
+            branch: "feat/login",
+            commit: "a1b2c3d",
+            agent: "backend",
+            at,
+            ..Default::default()
+        }
     }
 
     #[test]
     fn an_entry_is_a_record_of_type_change() {
-        let files = vec!["src/auth.rs".to_string(), " src/auth.rs ".to_string(), "".to_string(), "src/lib.rs".to_string()];
-        let mut d = draft("  Add a rate limit\nto /login ", "2026-10-21T14:02:11Z", &files);
+        let files = vec![
+            "src/auth.rs".to_string(),
+            " src/auth.rs ".to_string(),
+            "".to_string(),
+            "src/lib.rs".to_string(),
+        ];
+        let mut d = draft(
+            "  Add a rate limit\nto /login ",
+            "2026-10-21T14:02:11Z",
+            &files,
+        );
         d.why = "Five failures in a minute lock the address for ten, because the old code allowed unlimited tries.";
         let r = record(&d, "model:backend").unwrap();
-        assert_eq!((r.rtype.as_str(), r.kind, r.collection.as_str()), ("change", Kind::Knowledge, "journal"));
+        assert_eq!(
+            (r.rtype.as_str(), r.kind, r.collection.as_str()),
+            ("change", Kind::Knowledge, "journal")
+        );
         assert_eq!(r.title, "Add a rate limit to /login");
-        assert_eq!(r.attrs["files"], "src/auth.rs\nsrc/lib.rs", "files are trimmed and not repeated");
-        assert_eq!((r.verified_by.as_str(), r.source.as_str(), r.last_verified.as_str()), ("model:backend", "agent:backend", "2026-10-21"));
+        assert_eq!(
+            r.attrs["files"], "src/auth.rs\nsrc/lib.rs",
+            "files are trimmed and not repeated"
+        );
+        assert_eq!(
+            (
+                r.verified_by.as_str(),
+                r.source.as_str(),
+                r.last_verified.as_str()
+            ),
+            ("model:backend", "agent:backend", "2026-10-21")
+        );
         let e = entry_of(&r, "").unwrap();
-        assert_eq!((e.agent.as_str(), e.reviewed, e.files.len()), ("backend", false, 2));
+        assert_eq!(
+            (e.agent.as_str(), e.reviewed, e.files.len()),
+            ("backend", false, 2)
+        );
         assert!(e.why.starts_with("Five failures"));
     }
 
     #[test]
     fn a_summary_is_required_and_is_one_line() {
         assert!(record(&draft("   ", "2026-10-21T00:00:00Z", &[]), "human").is_err());
-        assert!(record(&draft(&"x".repeat(201), "2026-10-21T00:00:00Z", &[]), "human").is_err());
+        assert!(record(
+            &draft(&"x".repeat(201), "2026-10-21T00:00:00Z", &[]),
+            "human"
+        )
+        .is_err());
     }
 
     #[test]
@@ -563,14 +733,48 @@ mod tests {
             mk("new", "2026-10-21T09:00:00Z", "frontend", "b"),
             mk("mid", "2026-10-20T09:00:00Z", "backend", "b"),
         ];
-        recs.push(Record { rtype: String::new(), ..mk("not a change", "2026-10-22T00:00:00Z", "x", "x") });
+        recs.push(Record {
+            rtype: String::new(),
+            ..mk("not a change", "2026-10-22T00:00:00Z", "x", "x")
+        });
         let all = entries(&recs, "", &Filter::default());
-        assert_eq!(all.iter().map(|e| e.summary.as_str()).collect::<Vec<_>>(), ["new", "mid", "old"]);
-        let backend = entries(&recs, "", &Filter { agent: Some("backend".into()), ..Default::default() });
+        assert_eq!(
+            all.iter().map(|e| e.summary.as_str()).collect::<Vec<_>>(),
+            ["new", "mid", "old"]
+        );
+        let backend = entries(
+            &recs,
+            "",
+            &Filter {
+                agent: Some("backend".into()),
+                ..Default::default()
+            },
+        );
         assert_eq!(backend.len(), 2);
-        let recent = entries(&recs, "", &Filter { since: Some("2026-10-20".into()), limit: Some(1), ..Default::default() });
-        assert_eq!(recent.iter().map(|e| e.summary.as_str()).collect::<Vec<_>>(), ["new"]);
-        let on_b = entries(&recs, "", &Filter { branch: Some("b".into()), ..Default::default() });
+        let recent = entries(
+            &recs,
+            "",
+            &Filter {
+                since: Some("2026-10-20".into()),
+                limit: Some(1),
+                ..Default::default()
+            },
+        );
+        assert_eq!(
+            recent
+                .iter()
+                .map(|e| e.summary.as_str())
+                .collect::<Vec<_>>(),
+            ["new"]
+        );
+        let on_b = entries(
+            &recs,
+            "",
+            &Filter {
+                branch: Some("b".into()),
+                ..Default::default()
+            },
+        );
         assert_eq!(on_b.len(), 2);
     }
 
@@ -579,7 +783,14 @@ mod tests {
         let files = vec!["src/auth.rs".to_string()];
         let mut d = draft("Add a rate limit to /login", "2026-10-21T14:02:11Z", &files);
         d.why = "Five failures lock the address for ten minutes.";
-        let md = markdown(&entries(&[record(&d, "model:backend").unwrap()], "", &Filter::default()), "shop");
+        let md = markdown(
+            &entries(
+                &[record(&d, "model:backend").unwrap()],
+                "",
+                &Filter::default(),
+            ),
+            "shop",
+        );
         assert!(md.starts_with("# Change journal: shop"));
         for want in [
             "## 2026-10-21",
@@ -607,8 +818,20 @@ mod tests {
             ("me", "", "problem recognized", "", ""),
             ("me", "", "architecture defined", "", ""),
             ("me", "", "consultation sent", "reasoning agent", ""),
-            ("reasoning", "claude-r", "technical decision delegated", "decision agent", ""),
-            ("decision", "claude-d", "3 tasks assigned", "execution agents", ""),
+            (
+                "reasoning",
+                "claude-r",
+                "technical decision delegated",
+                "decision agent",
+                "",
+            ),
+            (
+                "decision",
+                "claude-d",
+                "3 tasks assigned",
+                "execution agents",
+                "",
+            ),
             ("execution", "claude-e1", "task 1", "", "running"),
             ("execution", "claude-e2", "task 2", "", "running"),
             ("execution", "claude-e3", "task 3", "", "running"),
@@ -616,13 +839,28 @@ mod tests {
             ("me", "", "reviewing the changes", "", ""),
         ];
         for (role, agent, summary, to, status) in script {
-            let d = Draft { summary, agent, at: "2026-10-23T10:00:00Z", role, status, to, ..Default::default() };
-            let verified = if agent.is_empty() { "human".to_string() } else { format!("model:{agent}") };
+            let d = Draft {
+                summary,
+                agent,
+                at: "2026-10-23T10:00:00Z",
+                role,
+                status,
+                to,
+                ..Default::default()
+            };
+            let verified = if agent.is_empty() {
+                "human".to_string()
+            } else {
+                format!("model:{agent}")
+            };
             append(&path, record(&d, &verified).unwrap()).unwrap();
         }
 
         let (_, records) = db::load(&path).unwrap();
-        let mut steps: Vec<Step> = entries(&records, "", &Filter::default()).iter().map(Step::of).collect();
+        let mut steps: Vec<Step> = entries(&records, "", &Filter::default())
+            .iter()
+            .map(Step::of)
+            .collect();
         sort_oldest_first(&mut steps);
         let want = "\
 #01 [me] problem recognized
@@ -639,17 +877,34 @@ mod tests {
         assert_eq!(timeline_text(&steps), want);
         // Written by a person with no agent: `reviewed`; by an agent: waiting.
         let all = entries(&records, "", &Filter::default());
-        assert!(all.iter().filter(|e| e.agent.is_empty()).all(|e| e.reviewed));
-        assert!(all.iter().filter(|e| !e.agent.is_empty()).all(|e| !e.reviewed));
+        assert!(all
+            .iter()
+            .filter(|e| e.agent.is_empty())
+            .all(|e| e.reviewed));
+        assert!(all
+            .iter()
+            .filter(|e| !e.agent.is_empty())
+            .all(|e| !e.reviewed));
         // Filtering by role keeps the order.
-        let exec = entries(&records, "", &Filter { role: Some("execution".into()), ..Default::default() });
+        let exec = entries(
+            &records,
+            "",
+            &Filter {
+                role: Some("execution".into()),
+                ..Default::default()
+            },
+        );
         assert_eq!(exec.len(), 4);
         assert!(timeline_markdown(&steps, "demo").contains("```\n#01 [me] problem recognized"));
         std::fs::remove_dir_all(&dir).ok();
     }
 
     fn have_git() -> bool {
-        Command::new("git").arg("--version").output().map(|o| o.status.success()).unwrap_or(false)
+        Command::new("git")
+            .arg("--version")
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
     }
 
     fn temp_repo(name: &str) -> std::path::PathBuf {
@@ -685,7 +940,10 @@ mod tests {
         let files: [(&str, &[u8]); 2] = [("JOURNAL.md", b"# one\n"), ("journal.json", b"[]\n")];
         let first = publish(&repo, "fds", &files, "journal: one").unwrap();
         assert!(first.created && !first.unchanged);
-        assert_eq!(git(&repo, &["show", "fds:JOURNAL.md"], None).unwrap(), "# one");
+        assert_eq!(
+            git(&repo, &["show", "fds:JOURNAL.md"], None).unwrap(),
+            "# one"
+        );
 
         // The same files again: no new commit.
         let again = publish(&repo, "fds", &files, "journal: one").unwrap();
@@ -695,13 +953,28 @@ mod tests {
         // Different files: a second commit whose parent is the first.
         let files2: [(&str, &[u8]); 2] = [("JOURNAL.md", b"# two\n"), ("journal.json", b"[]\n")];
         let second = publish(&repo, "fds", &files2, "journal: two").unwrap();
-        assert_eq!(git(&repo, &["rev-parse", "fds~1"], None).unwrap(), first.commit);
-        assert_eq!(git(&repo, &["rev-parse", "fds"], None).unwrap(), second.commit);
+        assert_eq!(
+            git(&repo, &["rev-parse", "fds~1"], None).unwrap(),
+            first.commit
+        );
+        assert_eq!(
+            git(&repo, &["rev-parse", "fds"], None).unwrap(),
+            second.commit
+        );
 
         // Everything the developer had is as it was.
-        assert_eq!(git(&repo, &["rev-parse", "HEAD"], None).unwrap(), head_before);
-        assert_eq!(git(&repo, &["symbolic-ref", "--short", "HEAD"], None).unwrap(), "main");
-        assert_eq!(std::fs::read_to_string(repo.join("code.txt")).unwrap(), "edited but not committed\n");
+        assert_eq!(
+            git(&repo, &["rev-parse", "HEAD"], None).unwrap(),
+            head_before
+        );
+        assert_eq!(
+            git(&repo, &["symbolic-ref", "--short", "HEAD"], None).unwrap(),
+            "main"
+        );
+        assert_eq!(
+            std::fs::read_to_string(repo.join("code.txt")).unwrap(),
+            "edited but not committed\n"
+        );
         assert!(repo.join("scratch.txt").exists() && !repo.join("JOURNAL.md").exists());
         let _ = std::fs::remove_dir_all(repo);
     }
@@ -714,14 +987,20 @@ mod tests {
         let repo = temp_repo("refuse");
         git(&repo, &["checkout", "-q", "-b", "fds"], None).unwrap();
         let files: [(&str, &[u8]); 1] = [("JOURNAL.md", b"x\n")];
-        assert!(publish(&repo, "fds", &files, "m").unwrap_err().contains("checked out"));
+        assert!(publish(&repo, "fds", &files, "m")
+            .unwrap_err()
+            .contains("checked out"));
         git(&repo, &["checkout", "-q", "main"], None).unwrap();
-        assert!(publish(&repo, "bad..name", &files, "m").unwrap_err().contains("not a valid branch name"));
+        assert!(publish(&repo, "bad..name", &files, "m")
+            .unwrap_err()
+            .contains("not a valid branch name"));
         let plain = std::env::temp_dir().join(format!("fds-journal-plain-{}", std::process::id()));
         std::fs::create_dir_all(&plain).unwrap();
         // A temp dir inside a repo would make this a repository; the system temp is not one.
         if git(&plain, &["rev-parse", "--git-dir"], None).is_err() {
-            assert!(publish(&plain, "fds", &files, "m").unwrap_err().contains("not a git repository"));
+            assert!(publish(&plain, "fds", &files, "m")
+                .unwrap_err()
+                .contains("not a git repository"));
         }
         let _ = std::fs::remove_dir_all(repo);
         let _ = std::fs::remove_dir_all(plain);

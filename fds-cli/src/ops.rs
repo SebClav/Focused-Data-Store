@@ -42,7 +42,9 @@ pub fn fact_record(
     }
     let canon = canonical(question);
     if canon.is_empty() {
-        return Err(format!("question `{question}` has no words left after normalisation"));
+        return Err(format!(
+            "question `{question}` has no words left after normalisation"
+        ));
     }
     Ok(Record {
         id: stable_id(&format!("fact:{canon}")),
@@ -82,9 +84,14 @@ pub fn upsert_fact(
 
 /// Accepts `[{question, answer, source?}]` or the Phase 1 mask format
 /// `{"entries": [{canonical_query, answer, source?, last_verified?}]}`.
-pub fn import_facts(file: &Path, records: &mut Vec<Record>, collection: &str) -> Result<usize, String> {
+pub fn import_facts(
+    file: &Path,
+    records: &mut Vec<Record>,
+    collection: &str,
+) -> Result<usize, String> {
     let text = std::fs::read_to_string(file).map_err(|e| format!("{}: {e}", file.display()))?;
-    let v: Value = serde_json::from_str(&text).map_err(|e| format!("{}: invalid JSON: {e}", file.display()))?;
+    let v: Value = serde_json::from_str(&text)
+        .map_err(|e| format!("{}: invalid JSON: {e}", file.display()))?;
     let items = v
         .get("entries")
         .and_then(|e| e.as_array())
@@ -92,23 +99,42 @@ pub fn import_facts(file: &Path, records: &mut Vec<Record>, collection: &str) ->
         .ok_or("expected a JSON array of facts, or an object with an `entries` array")?;
     let mut n = 0;
     for item in items {
-        let q = item.get("question").or_else(|| item.get("canonical_query")).and_then(|x| x.as_str());
+        let q = item
+            .get("question")
+            .or_else(|| item.get("canonical_query"))
+            .and_then(|x| x.as_str());
         let a = item.get("answer").and_then(|x| x.as_str());
         let (Some(q), Some(a)) = (q, a) else {
-            return Err(format!("fact #{} needs `question` (or `canonical_query`) and `answer`", n + 1));
+            return Err(format!(
+                "fact #{} needs `question` (or `canonical_query`) and `answer`",
+                n + 1
+            ));
         };
-        let source = item.get("source").and_then(|x| x.as_str()).unwrap_or("import");
-        let date = item.get("last_verified").and_then(|x| x.as_str()).map(str::to_string).unwrap_or_else(today);
-        upsert_fact(records, q, a, collection, source, "human", &date).map_err(|e| format!("fact #{}: {e}", n + 1))?;
+        let source = item
+            .get("source")
+            .and_then(|x| x.as_str())
+            .unwrap_or("import");
+        let date = item
+            .get("last_verified")
+            .and_then(|x| x.as_str())
+            .map(str::to_string)
+            .unwrap_or_else(today);
+        upsert_fact(records, q, a, collection, source, "human", &date)
+            .map_err(|e| format!("fact #{}: {e}", n + 1))?;
         n += 1;
     }
     Ok(n)
 }
 
 /// Procedures from a JSON file: one object or an array of them.
-pub fn add_procedures(file: &Path, records: &mut Vec<Record>, collection: &str) -> Result<Vec<String>, String> {
+pub fn add_procedures(
+    file: &Path,
+    records: &mut Vec<Record>,
+    collection: &str,
+) -> Result<Vec<String>, String> {
     let text = std::fs::read_to_string(file).map_err(|e| format!("{}: {e}", file.display()))?;
-    let v: Value = serde_json::from_str(&text).map_err(|e| format!("{}: invalid JSON: {e}", file.display()))?;
+    let v: Value = serde_json::from_str(&text)
+        .map_err(|e| format!("{}: invalid JSON: {e}", file.display()))?;
     add_procedures_value(v, records, collection, &ingest::source_name(file))
 }
 
@@ -134,7 +160,10 @@ pub fn add_procedures_value(
     let staged: Vec<Record> = items
         .into_iter()
         .enumerate()
-        .map(|(n, item)| procedure_record(item, collection, default_source).map_err(|e| format!("procedure #{}: {e}", n + 1)))
+        .map(|(n, item)| {
+            procedure_record(item, collection, default_source)
+                .map_err(|e| format!("procedure #{}: {e}", n + 1))
+        })
         .collect::<Result<_, _>>()?;
 
     let ids: Vec<String> = staged.iter().map(|r| r.id.clone()).collect();
@@ -150,10 +179,16 @@ pub fn add_procedures_value(
 /// bare `command` (plus optional `shell`), which becomes a single run step.
 /// `verified_by` and `last_verified` are kept when given, so an export
 /// re-imported unchanged keeps its provenance instead of being re-dated.
-pub fn procedure_record(mut item: Value, collection: &str, default_source: &str) -> Result<Record, String> {
+pub fn procedure_record(
+    mut item: Value,
+    collection: &str,
+    default_source: &str,
+) -> Result<Record, String> {
     let obj = item.as_object_mut().ok_or("not an object")?;
     let take = |obj: &mut serde_json::Map<String, Value>, k: &str| -> Option<String> {
-        obj.remove(k).and_then(|x| x.as_str().map(|s| s.trim().to_string())).filter(|s| !s.is_empty())
+        obj.remove(k)
+            .and_then(|x| x.as_str().map(|s| s.trim().to_string()))
+            .filter(|s| !s.is_empty())
     };
 
     let intent = take(obj, "intent").ok_or("needs an `intent`")?;
@@ -161,7 +196,8 @@ pub fn procedure_record(mut item: Value, collection: &str, default_source: &str)
     let (rtype, attrs, links) = shape_fields(obj)?;
 
     if let Some(Value::String(text)) = obj.get("steps") {
-        let parsed: Value = serde_json::from_str(text).map_err(|e| format!("`steps` is not valid JSON: {e}"))?;
+        let parsed: Value =
+            serde_json::from_str(text).map_err(|e| format!("`steps` is not valid JSON: {e}"))?;
         obj.insert("steps".into(), parsed);
     }
     let command = take(obj, "command");
@@ -177,8 +213,13 @@ pub fn procedure_record(mut item: Value, collection: &str, default_source: &str)
             obj.insert("steps".into(), json!([step]));
         }
     }
-    if !obj.get("steps").map_or(false, |s| s.as_array().map_or(false, |a| !a.is_empty())) {
-        return Err(format!("`{intent}` needs a non-empty `steps` array, or a `command` (SPEC.md §3.2)"));
+    if !obj
+        .get("steps")
+        .map_or(false, |s| s.as_array().map_or(false, |a| !a.is_empty()))
+    {
+        return Err(format!(
+            "`{intent}` needs a non-empty `steps` array, or a `command` (SPEC.md §3.2)"
+        ));
     }
 
     let title = take(obj, "title").unwrap_or_else(|| intent.clone());
@@ -190,7 +231,9 @@ pub fn procedure_record(mut item: Value, collection: &str, default_source: &str)
 
     let canon = canonical(&intent);
     if canon.is_empty() {
-        return Err(format!("intent `{intent}` has no words left after normalisation"));
+        return Err(format!(
+            "intent `{intent}` has no words left after normalisation"
+        ));
     }
     Ok(Record {
         id: stable_id(&format!("procedure:{canon}")),
@@ -216,12 +259,24 @@ pub fn procedure_record(mut item: Value, collection: &str, default_source: &str)
 /// plain list separated by `;` or new lines.
 pub fn shape_fields(
     obj: &mut serde_json::Map<String, Value>,
-) -> Result<(String, std::collections::BTreeMap<String, String>, Vec<String>), String> {
-    let rtype = obj.remove("type").and_then(|v| v.as_str().map(|s| s.trim().to_string())).unwrap_or_default();
+) -> Result<
+    (
+        String,
+        std::collections::BTreeMap<String, String>,
+        Vec<String>,
+    ),
+    String,
+> {
+    let rtype = obj
+        .remove("type")
+        .and_then(|v| v.as_str().map(|s| s.trim().to_string()))
+        .unwrap_or_default();
 
     let attrs_v = match obj.remove("attrs") {
         Some(Value::String(t)) if t.trim().is_empty() => Value::Null,
-        Some(Value::String(t)) => serde_json::from_str(&t).map_err(|e| format!("`attrs` is not valid JSON: {e}"))?,
+        Some(Value::String(t)) => {
+            serde_json::from_str(&t).map_err(|e| format!("`attrs` is not valid JSON: {e}"))?
+        }
         Some(v) => v,
         None => Value::Null,
     };
@@ -243,13 +298,19 @@ pub fn shape_fields(
 
     let links = match obj.remove("links") {
         None | Some(Value::Null) => Vec::new(),
-        Some(Value::Array(a)) => a.into_iter().filter_map(|v| v.as_str().map(|s| s.trim().to_string())).collect(),
+        Some(Value::Array(a)) => a
+            .into_iter()
+            .filter_map(|v| v.as_str().map(|s| s.trim().to_string()))
+            .collect(),
         Some(Value::String(t)) => {
             let t = t.trim();
             if t.starts_with('[') {
-                serde_json::from_str::<Vec<String>>(t).map_err(|e| format!("`links` is not a valid JSON list: {e}"))?
+                serde_json::from_str::<Vec<String>>(t)
+                    .map_err(|e| format!("`links` is not a valid JSON list: {e}"))?
             } else {
-                t.split(|c| c == ';' || c == '\n').map(|s| s.trim().to_string()).collect()
+                t.split(|c| c == ';' || c == '\n')
+                    .map(|s| s.trim().to_string())
+                    .collect()
             }
         }
         Some(_) => return Err("`links` must be a list of names".into()),
@@ -277,7 +338,9 @@ pub fn context_record(
         return Err("a context needs a name".into());
     }
     if instructions.trim().is_empty() && links.is_empty() {
-        return Err(format!("context `{name}` is empty: give it instructions, links, or both"));
+        return Err(format!(
+            "context `{name}` is empty: give it instructions, links, or both"
+        ));
     }
     Ok(Record {
         id: stable_id(&format!("context:{canon}")),
@@ -293,7 +356,11 @@ pub fn context_record(
         embedding: None,
         rtype: crate::query::CONTEXT_TYPE.to_string(),
         attrs: Default::default(),
-        links: links.iter().map(|l| l.trim().to_string()).filter(|l| !l.is_empty()).collect(),
+        links: links
+            .iter()
+            .map(|l| l.trim().to_string())
+            .filter(|l| !l.is_empty())
+            .collect(),
     })
 }
 
@@ -326,7 +393,11 @@ pub struct Edit {
 /// today. If its text changes, its vector no longer describes it and is
 /// dropped, to be computed again by `embed`.
 pub fn edit(records: &mut [Record], id: &str, e: Edit, date: &str) -> Result<String, String> {
-    let touched = e.body.is_some() || e.title.is_some() || e.rtype.is_some() || e.attrs.is_some() || e.links.is_some();
+    let touched = e.body.is_some()
+        || e.title.is_some()
+        || e.rtype.is_some()
+        || e.attrs.is_some()
+        || e.links.is_some();
     if !touched && !e.verify {
         return Err("nothing to change: give a field, or `verify: true`".into());
     }
@@ -337,10 +408,16 @@ pub fn edit(records: &mut [Record], id: &str, e: Edit, date: &str) -> Result<Str
     if let Some(body) = e.body {
         let body = body.trim().to_string();
         match r.kind {
-            _ if body.is_empty() && r.rtype != crate::query::CONTEXT_TYPE => return Err("the content cannot be empty".into()),
+            _ if body.is_empty() && r.rtype != crate::query::CONTEXT_TYPE => {
+                return Err("the content cannot be empty".into())
+            }
             Kind::Procedure => {
-                let v: Value = serde_json::from_str(&body).map_err(|e| format!("a procedure's content must be JSON: {e}"))?;
-                if !v.get("steps").map_or(false, |s| s.as_array().map_or(false, |a| !a.is_empty())) {
+                let v: Value = serde_json::from_str(&body)
+                    .map_err(|e| format!("a procedure's content must be JSON: {e}"))?;
+                if !v
+                    .get("steps")
+                    .map_or(false, |s| s.as_array().map_or(false, |a| !a.is_empty()))
+                {
                     return Err("a procedure needs a non-empty `steps` array (SPEC.md §3.2)".into());
                 }
             }
@@ -352,16 +429,26 @@ pub fn edit(records: &mut [Record], id: &str, e: Edit, date: &str) -> Result<Str
             changed_text = true;
         }
     }
-    if let Some(title) = e.title.map(|t| t.trim().to_string()).filter(|t| !t.is_empty()) {
+    if let Some(title) = e
+        .title
+        .map(|t| t.trim().to_string())
+        .filter(|t| !t.is_empty())
+    {
         if r.rtype == crate::query::CONTEXT_TYPE && canonical(&title) != canonical(&r.title) {
-            return Err("a context's name is what its id is made from; save it under the new name instead".into());
+            return Err(
+                "a context's name is what its id is made from; save it under the new name instead"
+                    .into(),
+            );
         }
         r.title = title;
     }
     if let Some(t) = e.rtype {
         let t = t.trim().to_string();
         if (t == crate::query::CONTEXT_TYPE) != (r.rtype == crate::query::CONTEXT_TYPE) {
-            return Err("a record cannot become a context, or stop being one; create a context instead".into());
+            return Err(
+                "a record cannot become a context, or stop being one; create a context instead"
+                    .into(),
+            );
         }
         r.rtype = t;
     }
@@ -369,7 +456,11 @@ pub fn edit(records: &mut [Record], id: &str, e: Edit, date: &str) -> Result<Str
         r.attrs = a;
     }
     if let Some(l) = e.links {
-        r.links = l.into_iter().map(|x| x.trim().to_string()).filter(|x| !x.is_empty()).collect();
+        r.links = l
+            .into_iter()
+            .map(|x| x.trim().to_string())
+            .filter(|x| !x.is_empty())
+            .collect();
     }
     if changed_text {
         r.embedding = None;
@@ -391,9 +482,18 @@ pub fn remove(records: &mut Vec<Record>, id: &str) -> Result<String, String> {
 ///
 /// Refuses to mix models: vectors from two models are not comparable, and a
 /// database holding both would rank on noise.
-pub async fn embed(meta: &mut DbMeta, records: &mut [Record], model: Option<String>, all: bool) -> Result<usize, String> {
+pub async fn embed(
+    meta: &mut DbMeta,
+    records: &mut [Record],
+    model: Option<String>,
+    all: bool,
+) -> Result<usize, String> {
     let model = model.unwrap_or_else(|| {
-        if meta.embedding_model.is_empty() { DEFAULT_EMBED_MODEL.to_string() } else { meta.embedding_model.clone() }
+        if meta.embedding_model.is_empty() {
+            DEFAULT_EMBED_MODEL.to_string()
+        } else {
+            meta.embedding_model.clone()
+        }
     });
     if !meta.embedding_model.is_empty() && meta.embedding_model != model && !all {
         return Err(format!(
@@ -401,7 +501,9 @@ pub async fn embed(meta: &mut DbMeta, records: &mut [Record], model: Option<Stri
             meta.embedding_model
         ));
     }
-    let todo: Vec<usize> = (0..records.len()).filter(|&i| all || records[i].embedding.is_none()).collect();
+    let todo: Vec<usize> = (0..records.len())
+        .filter(|&i| all || records[i].embedding.is_none())
+        .collect();
     if todo.is_empty() {
         return Ok(0);
     }
@@ -409,7 +511,12 @@ pub async fn embed(meta: &mut DbMeta, records: &mut [Record], model: Option<Stri
     // embedded; knowledge is matched on its body.
     let texts: Vec<String> = todo
         .iter()
-        .map(|&i| records[i].question.clone().unwrap_or_else(|| records[i].body.clone()))
+        .map(|&i| {
+            records[i]
+                .question
+                .clone()
+                .unwrap_or_else(|| records[i].body.clone())
+        })
         .collect();
     let vectors = ollama::embed(&model, &texts).await?;
     let dims = vectors.first().map(|v| v.len()).unwrap_or(0) as u32;
@@ -433,8 +540,14 @@ mod tests {
             {"intent": "broken one", "steps": []}
         ]);
         let err = add_procedures_value(batch, &mut records, "default", "test").unwrap_err();
-        assert!(err.contains("broken one"), "error should name the bad procedure: {err}");
-        assert!(records.is_empty(), "a rejected batch must not land partially");
+        assert!(
+            err.contains("broken one"),
+            "error should name the bad procedure: {err}"
+        );
+        assert!(
+            records.is_empty(),
+            "a rejected batch must not land partially"
+        );
     }
 
     #[test]
@@ -442,7 +555,8 @@ mod tests {
         let mut records = Vec::new();
         let one = |cmd: &str| json!({"intent": "Flush the DNS cache", "steps": [{"action": "run", "command": cmd}]});
         let a = add_procedures_value(one("old"), &mut records, "default", "t").unwrap();
-        let b = add_procedures_value(one("ipconfig /flushdns"), &mut records, "default", "t").unwrap();
+        let b =
+            add_procedures_value(one("ipconfig /flushdns"), &mut records, "default", "t").unwrap();
         assert_eq!(a, b, "same intent must keep the same stable id");
         assert_eq!(records.len(), 1);
         assert!(records[0].body.contains("ipconfig /flushdns"));
@@ -451,7 +565,16 @@ mod tests {
     #[test]
     fn remove_accepts_a_prefix() {
         let mut records = Vec::new();
-        let id = upsert_fact(&mut records, "what is pin 4 of the ne555", "RESET", "d", "s", "human", "2026-09-25").unwrap();
+        let id = upsert_fact(
+            &mut records,
+            "what is pin 4 of the ne555",
+            "RESET",
+            "d",
+            "s",
+            "human",
+            "2026-09-25",
+        )
+        .unwrap();
         assert_eq!(remove(&mut records, &id[..8]).unwrap(), id);
         assert!(records.is_empty());
     }
@@ -459,17 +582,48 @@ mod tests {
     #[test]
     fn an_edit_is_a_verification_and_drops_a_stale_vector() {
         let mut records = Vec::new();
-        let mut img = crate::media::image_record("a.png", "d", b"x", "image/png", "A router.", "qwen2.5vl:3b");
+        let mut img = crate::media::image_record(
+            "a.png",
+            "d",
+            b"x",
+            "image/png",
+            "A router.",
+            "qwen2.5vl:3b",
+        );
         img.embedding = Some(vec![0.1, 0.2]);
         let id = upsert(&mut records, img);
 
         // Verify only: same text, the vector stays.
-        edit(&mut records, &id, Edit { verify: true, ..Default::default() }, "2026-09-26").unwrap();
-        assert_eq!((records[0].verified_by.as_str(), records[0].last_verified.as_str()), ("human", "2026-09-26"));
+        edit(
+            &mut records,
+            &id,
+            Edit {
+                verify: true,
+                ..Default::default()
+            },
+            "2026-09-26",
+        )
+        .unwrap();
+        assert_eq!(
+            (
+                records[0].verified_by.as_str(),
+                records[0].last_verified.as_str()
+            ),
+            ("human", "2026-09-26")
+        );
         assert!(records[0].embedding.is_some());
 
         // Change the text: the vector no longer describes it.
-        edit(&mut records, &id, Edit { body: Some("TP-Link Archer C6, back panel.".into()), ..Default::default() }, "2026-09-26").unwrap();
+        edit(
+            &mut records,
+            &id,
+            Edit {
+                body: Some("TP-Link Archer C6, back panel.".into()),
+                ..Default::default()
+            },
+            "2026-09-26",
+        )
+        .unwrap();
         assert!(records[0].embedding.is_none());
         assert_eq!(records[0].tokens, 5);
     }
@@ -477,13 +631,46 @@ mod tests {
     #[test]
     fn an_edit_cannot_break_a_procedure_or_turn_a_record_into_a_context() {
         let mut records = Vec::new();
-        let ids = add_procedures_value(json!({"intent": "flush dns", "command": "ipconfig /flushdns"}), &mut records, "d", "t").unwrap();
-        let bad = edit(&mut records, &ids[0], Edit { body: Some("not json".into()), ..Default::default() }, "2026-09-26");
+        let ids = add_procedures_value(
+            json!({"intent": "flush dns", "command": "ipconfig /flushdns"}),
+            &mut records,
+            "d",
+            "t",
+        )
+        .unwrap();
+        let bad = edit(
+            &mut records,
+            &ids[0],
+            Edit {
+                body: Some("not json".into()),
+                ..Default::default()
+            },
+            "2026-09-26",
+        );
         assert!(bad.unwrap_err().contains("JSON"));
-        let no_steps = edit(&mut records, &ids[0], Edit { body: Some("{\"steps\": []}".into()), ..Default::default() }, "2026-09-26");
+        let no_steps = edit(
+            &mut records,
+            &ids[0],
+            Edit {
+                body: Some("{\"steps\": []}".into()),
+                ..Default::default()
+            },
+            "2026-09-26",
+        );
         assert!(no_steps.is_err());
-        let ctx = edit(&mut records, &ids[0], Edit { rtype: Some("context".into()), ..Default::default() }, "2026-09-26");
+        let ctx = edit(
+            &mut records,
+            &ids[0],
+            Edit {
+                rtype: Some("context".into()),
+                ..Default::default()
+            },
+            "2026-09-26",
+        );
         assert!(ctx.is_err());
-        assert!(records[0].body.contains("ipconfig"), "a refused edit changes nothing");
+        assert!(
+            records[0].body.contains("ipconfig"),
+            "a refused edit changes nothing"
+        );
     }
 }

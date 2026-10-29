@@ -12,7 +12,9 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use fds::v4::{DbMeta, Kind, Record};
 use serde::Serialize;
 
-use crate::text::{canonical, content_tokens, search_terms, search_fold, stable_id, token_set_key, wikilinks};
+use crate::text::{
+    canonical, content_tokens, search_fold, search_terms, stable_id, token_set_key, wikilinks,
+};
 
 /// The one `type` FDS gives meaning to (SPEC §4.4). Every other type is the
 /// owner's to define.
@@ -117,19 +119,34 @@ pub struct Scope<'a> {
 impl<'a> Scope<'a> {
     #[cfg(test)]
     pub fn collection(collection: Option<&'a str>) -> Self {
-        Scope { collection, verified_by: &[] }
+        Scope {
+            collection,
+            verified_by: &[],
+        }
     }
 
     fn admits(&self, r: &Record) -> bool {
         self.collection.map_or(true, |c| r.collection == c)
             && (self.verified_by.is_empty()
-                || self.verified_by.iter().any(|v| if v.ends_with(':') { r.verified_by.starts_with(v.as_str()) } else { r.verified_by == *v }))
+                || self.verified_by.iter().any(|v| {
+                    if v.ends_with(':') {
+                        r.verified_by.starts_with(v.as_str())
+                    } else {
+                        r.verified_by == *v
+                    }
+                }))
     }
 }
 
 /// Splits `human,model:` into the list a `Scope` takes.
 pub fn verified_list(s: Option<&str>) -> Vec<String> {
-    s.map(|s| s.split(',').map(|v| v.trim().to_string()).filter(|v| !v.is_empty()).collect()).unwrap_or_default()
+    s.map(|s| {
+        s.split(',')
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty())
+            .collect()
+    })
+    .unwrap_or_default()
 }
 
 /// A context loaded in one call (SPEC §4.4): its instructions and every
@@ -206,7 +223,9 @@ impl Engine {
         // They are indexed on question + title + body, since the question is
         // what a query resembles.
         let tokens: Vec<Vec<String>> = records.iter().map(index_terms).collect();
-        let searchable: Vec<usize> = (0..records.len()).filter(|&i| records[i].rtype != CONTEXT_TYPE).collect();
+        let searchable: Vec<usize> = (0..records.len())
+            .filter(|&i| records[i].rtype != CONTEXT_TYPE)
+            .collect();
         let mut doc_freq: HashMap<String, usize> = HashMap::new();
         for &i in &searchable {
             for t in tokens[i].iter().collect::<HashSet<_>>() {
@@ -216,7 +235,11 @@ impl Engine {
         let avg_len = if searchable.is_empty() {
             1.0
         } else {
-            searchable.iter().map(|&i| tokens[i].len() as f32).sum::<f32>() / searchable.len() as f32
+            searchable
+                .iter()
+                .map(|&i| tokens[i].len() as f32)
+                .sum::<f32>()
+                / searchable.len() as f32
         };
 
         // Links resolve by name, the way Obsidian resolves a note: a compiled
@@ -235,7 +258,12 @@ impl Engine {
         let mut backlinks = vec![Vec::new(); records.len()];
         for (i, r) in records.iter().enumerate() {
             let mut targets: Vec<String> = Vec::new();
-            for t in r.links.iter().map(|l| canonical(l)).chain(wikilinks(&r.body)) {
+            for t in r
+                .links
+                .iter()
+                .map(|l| canonical(l))
+                .chain(wikilinks(&r.body))
+            {
                 if !t.is_empty() && !targets.contains(&t) {
                     targets.push(t);
                 }
@@ -257,7 +285,19 @@ impl Engine {
             out_links.push(resolved);
         }
 
-        Engine { meta, records, by_canonical, by_token_set, compiled, searchable, tokens, doc_freq, avg_len, out_links, backlinks }
+        Engine {
+            meta,
+            records,
+            by_canonical,
+            by_token_set,
+            compiled,
+            searchable,
+            tokens,
+            doc_freq,
+            avg_len,
+            out_links,
+            backlinks,
+        }
     }
 
     pub fn links_of(&self, i: usize) -> Vec<LinkRef> {
@@ -289,8 +329,17 @@ impl Engine {
     /// Confidence is not touched: a linked record is context, not evidence.
     pub fn expand_links(&self, result: &mut QueryResult, scope: &Scope) {
         let mut have: HashSet<String> = result.records.iter().map(|h| h.id.clone()).collect();
-        let by_id: HashMap<&str, usize> = self.records.iter().enumerate().map(|(i, r)| (r.id.as_str(), i)).collect();
-        let sources: Vec<usize> = result.records.iter().filter_map(|h| by_id.get(h.id.as_str()).copied()).collect();
+        let by_id: HashMap<&str, usize> = self
+            .records
+            .iter()
+            .enumerate()
+            .map(|(i, r)| (r.id.as_str(), i))
+            .collect();
+        let sources: Vec<usize> = result
+            .records
+            .iter()
+            .filter_map(|h| by_id.get(h.id.as_str()).copied())
+            .collect();
         for i in sources {
             for (_, to) in &self.out_links[i] {
                 let Some(j) = *to else { continue };
@@ -309,7 +358,9 @@ impl Engine {
     }
 
     pub fn contexts(&self) -> Vec<usize> {
-        (0..self.records.len()).filter(|&i| self.records[i].rtype == CONTEXT_TYPE).collect()
+        (0..self.records.len())
+            .filter(|&i| self.records[i].rtype == CONTEXT_TYPE)
+            .collect()
     }
 
     /// A context by name (its title, compared canonically) or by id or id
@@ -322,7 +373,11 @@ impl Engine {
             .find(|&i| canonical(&self.records[i].title) == key)
             .or_else(|| ctx.iter().copied().find(|&i| self.records[i].id == wanted))
             .or_else(|| {
-                let hits: Vec<usize> = ctx.iter().copied().filter(|&i| wanted.len() >= 6 && self.records[i].id.starts_with(wanted)).collect();
+                let hits: Vec<usize> = ctx
+                    .iter()
+                    .copied()
+                    .filter(|&i| wanted.len() >= 6 && self.records[i].id.starts_with(wanted))
+                    .collect();
                 (hits.len() == 1).then(|| hits[0])
             })
     }
@@ -337,12 +392,19 @@ impl Engine {
         self.walk_context(i, &mut seen, &mut records, &mut missing);
 
         let c = &self.records[i];
-        let tokens = c.tokens + records.iter().map(|h: &Hit| crate::text::word_count(&h.body)).sum::<u32>();
+        let tokens = c.tokens
+            + records
+                .iter()
+                .map(|h: &Hit| crate::text::word_count(&h.body))
+                .sum::<u32>();
         // Content only: re-verifying a record without changing it must not
         // make every agent read the context again.
         let mut fingerprint = format!("{}\u{1f}{}\u{1f}{}", c.id, c.title, c.body);
         for h in &records {
-            fingerprint.push_str(&format!("\u{1e}{}\u{1f}{}\u{1f}{}\u{1f}{}\u{1f}{:?}", h.id, h.title, h.body, h.rtype, h.attrs));
+            fingerprint.push_str(&format!(
+                "\u{1e}{}\u{1f}{}\u{1f}{}\u{1f}{}\u{1f}{:?}",
+                h.id, h.title, h.body, h.rtype, h.attrs
+            ));
         }
         for m in &missing {
             fingerprint.push_str(&format!("\u{1d}{m}"));
@@ -361,7 +423,13 @@ impl Engine {
         }
     }
 
-    fn walk_context(&self, i: usize, seen: &mut HashSet<usize>, out: &mut Vec<Hit>, missing: &mut Vec<String>) {
+    fn walk_context(
+        &self,
+        i: usize,
+        seen: &mut HashSet<usize>,
+        out: &mut Vec<Hit>,
+        missing: &mut Vec<String>,
+    ) {
         for (target, to) in &self.out_links[i] {
             match to {
                 None => {
@@ -454,7 +522,9 @@ impl Engine {
             .unwrap_or_default()
             .into_iter()
             .collect();
-        if r_tokens.intersection(&q_tokens).count() < MIN_SHARED_TOKENS || !r_tokens.is_subset(&q_tokens) {
+        if r_tokens.intersection(&q_tokens).count() < MIN_SHARED_TOKENS
+            || !r_tokens.is_subset(&q_tokens)
+        {
             return None;
         }
         Some(self.hit(i, "semantic", score))
@@ -482,7 +552,8 @@ impl Engine {
                     }
                     let df = *self.doc_freq.get(qt).unwrap_or(&0) as f32;
                     let idf = ((n - df + 0.5) / (df + 0.5) + 1.0).ln();
-                    s += idf * (tf * (BM25_K1 + 1.0)) / (tf + BM25_K1 * (1.0 - BM25_B + BM25_B * len / self.avg_len));
+                    s += idf * (tf * (BM25_K1 + 1.0))
+                        / (tf + BM25_K1 * (1.0 - BM25_B + BM25_B * len / self.avg_len));
                 }
                 (s > 0.0).then_some((i, s))
             })
@@ -498,9 +569,18 @@ impl Engine {
     /// segments of it and no other source ends the same way. Agents read the
     /// documents of a project by path, so asking for one by path must work.
     fn source_lookup(&self, query: &str, allowed: &[usize]) -> Option<Vec<usize>> {
-        let q = query.trim().trim_matches(|c: char| matches!(c, '`' | '"' | '\'' | '(' | ')' | '<' | '>' | ',' | ';' | ':')).replace('\\', "/");
+        let q = query
+            .trim()
+            .trim_matches(|c: char| {
+                matches!(
+                    c,
+                    '`' | '"' | '\'' | '(' | ')' | '<' | '>' | ',' | ';' | ':'
+                )
+            })
+            .replace('\\', "/");
         let q = search_fold(q.trim_start_matches("./"));
-        if q.is_empty() || q.contains(char::is_whitespace) || !(q.contains('/') || q.contains('.')) {
+        if q.is_empty() || q.contains(char::is_whitespace) || !(q.contains('/') || q.contains('.'))
+        {
             return None;
         }
         let mut exact: Vec<&str> = Vec::new();
@@ -516,15 +596,30 @@ impl Engine {
                 ending.push(src);
             }
         }
-        let wanted = if !exact.is_empty() { exact } else if ending.len() == 1 { ending } else { return None };
-        let ids: Vec<usize> = allowed.iter().copied().filter(|&i| wanted.contains(&self.records[i].source.as_str())).collect();
+        let wanted = if !exact.is_empty() {
+            exact
+        } else if ending.len() == 1 {
+            ending
+        } else {
+            return None;
+        };
+        let ids: Vec<usize> = allowed
+            .iter()
+            .copied()
+            .filter(|&i| wanted.contains(&self.records[i].source.as_str()))
+            .collect();
         (!ids.is_empty()).then_some(ids)
     }
 
     fn vectors(&self, q_emb: &[f32], allowed: &[usize]) -> Vec<(usize, f32)> {
         let mut scored: Vec<(usize, f32)> = allowed
             .iter()
-            .filter_map(|&i| self.records[i].embedding.as_ref().map(|e| (i, cosine(q_emb, e))))
+            .filter_map(|&i| {
+                self.records[i]
+                    .embedding
+                    .as_ref()
+                    .map(|e| (i, cosine(q_emb, e)))
+            })
             .filter(|(_, s)| *s > 0.0)
             .collect();
         scored.sort_by(|a, b| b.1.total_cmp(&a.1));
@@ -534,11 +629,23 @@ impl Engine {
 
     /// The unscoped query, for tests; everything else passes a `Scope`.
     #[cfg(test)]
-    pub fn query(&self, text: &str, collection: Option<&str>, budget: u32, q_emb: Option<&[f32]>) -> QueryResult {
+    pub fn query(
+        &self,
+        text: &str,
+        collection: Option<&str>,
+        budget: u32,
+        q_emb: Option<&[f32]>,
+    ) -> QueryResult {
         self.query_scoped(text, &Scope::collection(collection), budget, q_emb)
     }
 
-    pub fn query_scoped(&self, text: &str, scope: &Scope, budget: u32, q_emb: Option<&[f32]>) -> QueryResult {
+    pub fn query_scoped(
+        &self,
+        text: &str,
+        scope: &Scope,
+        budget: u32,
+        q_emb: Option<&[f32]>,
+    ) -> QueryResult {
         if let Some(hit) = self.match_compiled(text, scope, q_emb) {
             let used = crate::text::word_count(&hit.body);
             return QueryResult {
@@ -551,8 +658,12 @@ impl Engine {
         }
 
         // Stage 2 (§4.3). Collection filter before ranking.
-        let allowed: Vec<usize> =
-            self.searchable.iter().copied().filter(|&i| self.in_scope(i, scope)).collect();
+        let allowed: Vec<usize> = self
+            .searchable
+            .iter()
+            .copied()
+            .filter(|&i| self.in_scope(i, scope))
+            .collect();
 
         let by_path = self.source_lookup(text, &allowed);
         let keyword = match &by_path {
@@ -602,8 +713,10 @@ impl Engine {
             e.0 += 1.0 / (RRF_K + rank as f32 + 1.0);
             e.2 = true;
         }
-        let mut ranked: Vec<(usize, f32, bool, bool)> =
-            fused.into_iter().map(|(i, (s, k, v))| (i, s, k, v)).collect();
+        let mut ranked: Vec<(usize, f32, bool, bool)> = fused
+            .into_iter()
+            .map(|(i, (s, k, v))| (i, s, k, v))
+            .collect();
         ranked.sort_by(|a, b| b.1.total_cmp(&a.1).then(a.0.cmp(&b.0)));
 
         let mut hits = Vec::new();
@@ -751,7 +864,10 @@ mod tests {
                 fact("what is pin 4 of the ne555", "RESET"),
                 fact("what is the maximum output current of the lm317", "1.5 A"),
                 knowledge("k1", "Pin 2 of the NE555 is TRIG, the trigger input."),
-                knowledge("k2", "The LM317 needs a minimum load current of 10 mA to regulate."),
+                knowledge(
+                    "k2",
+                    "The LM317 needs a minimum load current of 10 mA to regulate.",
+                ),
             ],
         )
     }
@@ -779,7 +895,12 @@ mod tests {
         assert_ne!(r.confidence, Confidence::Exact);
         assert!(r.records[0].body.contains("TRIG"));
 
-        let r = engine().query("what minimum load current does the lm317 need", None, 400, None);
+        let r = engine().query(
+            "what minimum load current does the lm317 need",
+            None,
+            400,
+            None,
+        );
         assert_ne!(r.confidence, Confidence::Exact);
         assert!(r.records[0].body.contains("10 mA"));
     }
@@ -827,7 +948,12 @@ mod tests {
             body: r##"{"steps":[{"action":"click","selector":"#save"}]}"##.into(),
             ..e[0].clone()
         });
-        let r = Engine::new(DbMeta::default(), e).query("how do I register a customer", None, 400, None);
+        let r = Engine::new(DbMeta::default(), e).query(
+            "how do I register a customer",
+            None,
+            400,
+            None,
+        );
         assert_eq!(r.records[0].kind, Kind::Procedure);
         // Found, but never promoted to exact: the caller decides whether to run it.
         assert_ne!(r.confidence, Confidence::Exact);
@@ -835,11 +961,18 @@ mod tests {
     }
 
     fn context(name: &str, body: &str) -> Record {
-        Record { rtype: CONTEXT_TYPE.into(), title: name.into(), ..knowledge(&format!("ctx-{}", canonical(name)), body) }
+        Record {
+            rtype: CONTEXT_TYPE.into(),
+            title: name.into(),
+            ..knowledge(&format!("ctx-{}", canonical(name)), body)
+        }
     }
 
     fn graph() -> Engine {
-        let mut reboot = fact("how do I reboot the router", "Hold RESET for 10 s. Check [[router admin ip]] first.");
+        let mut reboot = fact(
+            "how do I reboot the router",
+            "Hold RESET for 10 s. Check [[router admin ip]] first.",
+        );
         reboot.links = vec!["Router back panel".into()];
         Engine::new(
             DbMeta::default(),
@@ -857,10 +990,20 @@ mod tests {
     fn links_resolve_by_question_or_title_and_record_backlinks() {
         let e = graph();
         let links = e.links_of(0);
-        let targets: Vec<(&str, bool)> = links.iter().map(|l| (l.target.as_str(), l.id.is_some())).collect();
+        let targets: Vec<(&str, bool)> = links
+            .iter()
+            .map(|l| (l.target.as_str(), l.id.is_some()))
+            .collect();
         // Explicit links first, then the ones written in the body.
-        assert_eq!(targets, vec![("router back panel", true), ("router admin ip", true)]);
-        assert_eq!(e.backlinks_of(1), &[0], "the admin-ip fact knows who points at it");
+        assert_eq!(
+            targets,
+            vec![("router back panel", true), ("router admin ip", true)]
+        );
+        assert_eq!(
+            e.backlinks_of(1),
+            &[0],
+            "the admin-ip fact knows who points at it"
+        );
         assert!(e.edges().contains(&(0, 2)));
     }
 
@@ -868,8 +1011,14 @@ mod tests {
     fn contexts_are_loaded_by_name_never_returned_as_answers() {
         let e = graph();
         let r = e.query("refunds over 100 EUR", None, 400, None);
-        assert!(r.records.iter().all(|h| h.rtype != CONTEXT_TYPE), "a context is instructions, not an answer");
-        assert!(e.find_context("network SUPPORT").is_some(), "found by name, canonically");
+        assert!(
+            r.records.iter().all(|h| h.rtype != CONTEXT_TYPE),
+            "a context is instructions, not an answer"
+        );
+        assert!(
+            e.find_context("network SUPPORT").is_some(),
+            "found by name, canonically"
+        );
         assert!(e.find_context("no such context").is_none());
     }
 
@@ -878,9 +1027,19 @@ mod tests {
         let e = graph();
         let b = e.context(e.find_context("Network support").unwrap());
         assert!(b.instructions.starts_with("Answer in Spanish"));
-        let got: Vec<(&str, &str)> = b.records.iter().map(|h| (h.title.as_str(), h.match_kind.as_str())).collect();
+        let got: Vec<(&str, &str)> = b
+            .records
+            .iter()
+            .map(|h| (h.title.as_str(), h.match_kind.as_str()))
+            .collect();
         // Billing links back to Network support: the cycle is followed once.
-        assert_eq!(got, vec![("how do I reboot the router", "member"), ("Billing", "context")]);
+        assert_eq!(
+            got,
+            vec![
+                ("how do I reboot the router", "member"),
+                ("Billing", "context")
+            ]
+        );
         assert_eq!(b.missing, vec!["printer drivers".to_string()]);
         assert!(b.tokens > 0);
     }
@@ -893,7 +1052,10 @@ mod tests {
 
         let mut recs = base.records.clone();
         recs[0].last_verified = "2030-01-01".into(); // re-verified, unchanged
-        assert_eq!(Engine::new(DbMeta::default(), recs.clone()).context(i).hash, h0);
+        assert_eq!(
+            Engine::new(DbMeta::default(), recs.clone()).context(i).hash,
+            h0
+        );
 
         recs[0].body = "Hold RESET for 30 s.".into(); // a member changed
         assert_ne!(Engine::new(DbMeta::default(), recs).context(i).hash, h0);
@@ -905,9 +1067,16 @@ mod tests {
         let mut r = e.query("how do I reboot the router", None, 400, None);
         let before = r.confidence;
         e.expand_links(&mut r, &Scope::default());
-        let kinds: Vec<(&str, &str)> = r.records.iter().map(|h| (h.title.as_str(), h.match_kind.as_str())).collect();
+        let kinds: Vec<(&str, &str)> = r
+            .records
+            .iter()
+            .map(|h| (h.title.as_str(), h.match_kind.as_str()))
+            .collect();
         assert_eq!(kinds[0].1, "exact");
-        assert!(kinds.contains(&("router admin ip", "link")) && kinds.contains(&("Router back panel", "link")));
+        assert!(
+            kinds.contains(&("router admin ip", "link"))
+                && kinds.contains(&("Router back panel", "link"))
+        );
         assert_eq!(r.confidence, before);
 
         let mut tight = e.query("how do I reboot the router", None, 1, None);
@@ -919,15 +1088,25 @@ mod tests {
     fn a_verified_by_scope_holds_at_both_stages_and_for_links() {
         let mut model_ip = fact("router admin ip", "192.168.0.1");
         model_ip.verified_by = "model:qwen2.5vl:3b".into();
-        let mut reboot = fact("how do I reboot the router", "Hold RESET. See [[router admin ip]].");
+        let mut reboot = fact(
+            "how do I reboot the router",
+            "Hold RESET. See [[router admin ip]].",
+        );
         reboot.verified_by = "human".into();
         let e = Engine::new(DbMeta::default(), vec![model_ip, reboot]);
         let human = vec!["human".to_string()];
-        let only_human = Scope { collection: None, verified_by: &human };
+        let only_human = Scope {
+            collection: None,
+            verified_by: &human,
+        };
 
         // Stage 1 would match exactly, but the record is out of scope.
         let r = e.query_scoped("router admin ip", &only_human, 400, None);
-        assert!(r.records.iter().all(|h| h.verified_by == "human"), "{:?}", r.records);
+        assert!(
+            r.records.iter().all(|h| h.verified_by == "human"),
+            "{:?}",
+            r.records
+        );
 
         // A link does not smuggle in what the scope excludes.
         let mut r = e.query_scoped("how do I reboot the router", &only_human, 400, None);
@@ -936,12 +1115,27 @@ mod tests {
 
         // `model:` is a prefix.
         let models = vec!["model:".to_string()];
-        let r = e.query_scoped("router admin ip", &Scope { collection: None, verified_by: &models }, 400, None);
-        assert_eq!((r.confidence, r.records[0].verified_by.as_str()), (Confidence::Exact, "model:qwen2.5vl:3b"));
+        let r = e.query_scoped(
+            "router admin ip",
+            &Scope {
+                collection: None,
+                verified_by: &models,
+            },
+            400,
+            None,
+        );
+        assert_eq!(
+            (r.confidence, r.records[0].verified_by.as_str()),
+            (Confidence::Exact, "model:qwen2.5vl:3b")
+        );
     }
 
     fn section(id: &str, source: &str, title: &str, body: &str) -> Record {
-        Record { title: title.into(), source: source.into(), ..knowledge(id, body) }
+        Record {
+            title: title.into(),
+            source: source.into(),
+            ..knowledge(id, body)
+        }
     }
 
     /// A small manual: sections whose bodies never say the word of their
@@ -964,16 +1158,35 @@ mod tests {
     fn a_query_without_accents_finds_the_text_that_has_them() {
         let e = Engine::new(
             DbMeta::default(),
-            vec![knowledge("k1", "El horario de atención es de martes a sábado."), knowledge("k2", "La cocina cierra a las 23:00.")],
+            vec![
+                knowledge("k1", "El horario de atención es de martes a sábado."),
+                knowledge("k2", "La cocina cierra a las 23:00."),
+            ],
         );
-        for q in ["horario de atencion", "horario de atención", "HORARIO DE ATENCIÓN", "horario de atenci\u{0301}on"] {
+        for q in [
+            "horario de atencion",
+            "horario de atención",
+            "HORARIO DE ATENCIÓN",
+            "horario de atenci\u{0301}on",
+        ] {
             let r = e.query(q, None, 400, None);
             assert_eq!(r.confidence, Confidence::Strong, "{q}");
             assert_eq!(r.records[0].id, "k1", "{q}");
         }
         // And the other way round: a text without accents, a query with them.
-        let e = Engine::new(DbMeta::default(), vec![knowledge("k1", "El horario de atencion es de martes a sabado.")]);
-        assert_eq!(e.query("¿Cuál es el horario de atención?", None, 400, None).records[0].id, "k1");
+        let e = Engine::new(
+            DbMeta::default(),
+            vec![knowledge(
+                "k1",
+                "El horario de atencion es de martes a sabado.",
+            )],
+        );
+        assert_eq!(
+            e.query("¿Cuál es el horario de atención?", None, 400, None)
+                .records[0]
+                .id,
+            "k1"
+        );
     }
 
     #[test]
@@ -994,16 +1207,39 @@ mod tests {
             ("es", "Café con leche y pastel de choclo."),
             ("emoji", "🍕🎉 fiesta 🥳"),
         ];
-        let e = Engine::new(DbMeta::default(), docs.iter().map(|(id, b)| knowledge(id, b)).collect());
+        let e = Engine::new(
+            DbMeta::default(),
+            docs.iter().map(|(id, b)| knowledge(id, b)).collect(),
+        );
         let first = |q: &str| {
             let r = e.query(q, None, 400, None);
-            (r.records.first().map(|h| h.id.clone()).unwrap_or_default(), r.confidence)
+            (
+                r.records.first().map(|h| h.id.clone()).unwrap_or_default(),
+                r.confidence,
+            )
         };
         for (q, id) in [
-            ("strasse", "de"), ("STRASSE", "de"), ("οδος ερμου", "el"), ("ΟΔΟΣ", "el"), ("istanbul", "tr"), ("bogazi", "tr"),
-            ("москва", "ru"), ("елка", "ru"), ("مرحبا", "ar"), ("שלום", "he"), ("नमस्ते", "hi"), ("กาแฟ", "th"),
-            ("咖啡", "zh"), ("拉巴斯", "zh"), ("東京タワー", "ja"), ("서울", "ko"), ("한국어", "ko"), ("cafe", "es"),
-            ("ca\u{0066}\u{0065}\u{0301} con leche", "es"), ("café", "fw"), ("fiesta", "emoji"),
+            ("strasse", "de"),
+            ("STRASSE", "de"),
+            ("οδος ερμου", "el"),
+            ("ΟΔΟΣ", "el"),
+            ("istanbul", "tr"),
+            ("bogazi", "tr"),
+            ("москва", "ru"),
+            ("елка", "ru"),
+            ("مرحبا", "ar"),
+            ("שלום", "he"),
+            ("नमस्ते", "hi"),
+            ("กาแฟ", "th"),
+            ("咖啡", "zh"),
+            ("拉巴斯", "zh"),
+            ("東京タワー", "ja"),
+            ("서울", "ko"),
+            ("한국어", "ko"),
+            ("cafe", "es"),
+            ("ca\u{0066}\u{0065}\u{0301} con leche", "es"),
+            ("café", "fw"),
+            ("fiesta", "emoji"),
         ] {
             let (got, conf) = first(q);
             if q == "café" {
@@ -1016,20 +1252,35 @@ mod tests {
         }
         // Symbols alone are not terms: nothing to match, and nothing crashes.
         assert_eq!(e.query("🍕", None, 400, None).confidence, Confidence::None);
-        assert_eq!(e.query("\u{301}\u{0}\u{FFFF}", None, 400, None).confidence, Confidence::None);
+        assert_eq!(
+            e.query("\u{301}\u{0}\u{FFFF}", None, 400, None).confidence,
+            Confidence::None
+        );
         // A query that is not in the database stays unanswered.
-        assert_eq!(e.query("咖茶", None, 400, None).confidence, Confidence::Weak);
+        assert_eq!(
+            e.query("咖茶", None, 400, None).confidence,
+            Confidence::Weak
+        );
     }
 
     #[test]
     fn the_accent_fold_does_not_touch_stage_one_or_the_stored_text() {
-        let e = Engine::new(DbMeta::default(), vec![fact("horario de atención", "Mar a sáb 17:00 a 01:00")]);
+        let e = Engine::new(
+            DbMeta::default(),
+            vec![fact("horario de atención", "Mar a sáb 17:00 a 01:00")],
+        );
         let r = e.query("horario de atención", None, 400, None);
-        assert_eq!((r.confidence, r.records[0].match_kind.as_str()), (Confidence::Exact, "exact"));
+        assert_eq!(
+            (r.confidence, r.records[0].match_kind.as_str()),
+            (Confidence::Exact, "exact")
+        );
         // Without the accent it is not a compiled match (precision first), but
         // the fact is the first candidate of stage 2 and covers the query.
         let r = e.query("horario de atencion", None, 400, None);
-        assert_eq!((r.confidence, r.records[0].match_kind.as_str()), (Confidence::Strong, "keyword"));
+        assert_eq!(
+            (r.confidence, r.records[0].match_kind.as_str()),
+            (Confidence::Strong, "keyword")
+        );
         assert_eq!(r.records[0].body, "Mar a sáb 17:00 a 01:00");
         assert_eq!(r.records[0].title, "horario de atención");
     }
@@ -1047,41 +1298,83 @@ mod tests {
         let r = e.query("nombres de las variables", None, 400, None);
         assert_eq!(r.records[0].id, "d", "{:?}", ids(&r));
         let r = e.query("variables CSS", None, 400, None);
-        assert!(ids(&r).contains(&"d".to_string()), "the table must be returned: {:?}", ids(&r));
+        assert!(
+            ids(&r).contains(&"d".to_string()),
+            "the table must be returned: {:?}",
+            ids(&r)
+        );
     }
 
     #[test]
     fn a_path_asked_alone_reads_that_file_in_the_order_it_is_stored() {
         let e = manual();
-        let ids = |q: &str| e.query(q, None, 400, None).records.iter().map(|h| h.id.clone()).collect::<Vec<_>>();
+        let ids = |q: &str| {
+            e.query(q, None, 400, None)
+                .records
+                .iter()
+                .map(|h| h.id.clone())
+                .collect::<Vec<_>>()
+        };
         assert_eq!(ids("docs/diseno.md"), vec!["c", "d"]);
         assert_eq!(ids("`docs\\diseno.md`"), vec!["c", "d"]);
         assert_eq!(ids("./docs/negocio.md"), vec!["a", "b"]);
-        assert_eq!(ids("diseño.md"), vec!["c", "d"], "a file name that only one source ends with");
+        assert_eq!(
+            ids("diseño.md"),
+            vec!["c", "d"],
+            "a file name that only one source ends with"
+        );
         let r = e.query("docs/diseno.md", None, 400, None);
         assert_eq!(r.confidence, Confidence::Strong);
         // The budget still applies, and the first section is always returned.
         assert_eq!(e.query("docs/diseno.md", None, 1, None).records.len(), 1);
         // A name that two sources share is not a path, and words around a path make it an ordinary query.
-        let twins = Engine::new(DbMeta::default(), vec![section("x", "a/README.md", "A", "uno"), section("y", "b/README.md", "B", "dos")]);
+        let twins = Engine::new(
+            DbMeta::default(),
+            vec![
+                section("x", "a/README.md", "A", "uno"),
+                section("y", "b/README.md", "B", "dos"),
+            ],
+        );
         assert_eq!(twins.query("README.md", None, 400, None).records.len(), 2);
         assert!(twins.source_lookup("README.md", &[0, 1]).is_none());
-        assert!(e.source_lookup("qué dice docs/diseno.md sobre las variables", &[0, 1, 2, 3, 4]).is_none());
+        assert!(e
+            .source_lookup(
+                "qué dice docs/diseno.md sobre las variables",
+                &[0, 1, 2, 3, 4]
+            )
+            .is_none());
     }
 
     #[test]
     fn the_headings_above_a_section_count_less_than_its_own() {
-        let adr = |id: &str, leaf: &str| section(id, "docs/adr-006.md", &format!("ADR-006: Aviso de alcohol y pagos > {leaf}"), "Texto de la decisión.");
+        let adr = |id: &str, leaf: &str| {
+            section(
+                id,
+                "docs/adr-006.md",
+                &format!("ADR-006: Aviso de alcohol y pagos > {leaf}"),
+                "Texto de la decisión.",
+            )
+        };
         let e = Engine::new(
             DbMeta::default(),
             vec![
                 adr("x1", "Contexto"),
                 adr("x2", "Decisión"),
                 adr("x3", "Consecuencias"),
-                section("menu", "docs/menu.md", "La carta > Aviso de alcohol", "Va junto a cócteles y cervezas."),
+                section(
+                    "menu",
+                    "docs/menu.md",
+                    "La carta > Aviso de alcohol",
+                    "Va junto a cócteles y cervezas.",
+                ),
             ],
         );
         let r = e.query("aviso de alcohol", None, 400, None);
-        assert_eq!(r.records[0].id, "menu", "{:?}", r.records.iter().map(|h| h.id.as_str()).collect::<Vec<_>>());
+        assert_eq!(
+            r.records[0].id,
+            "menu",
+            "{:?}",
+            r.records.iter().map(|h| h.id.as_str()).collect::<Vec<_>>()
+        );
     }
 }

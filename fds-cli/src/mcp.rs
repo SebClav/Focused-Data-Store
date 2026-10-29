@@ -21,12 +21,19 @@ use crate::text::today;
 use crate::{db, ops, policy, sensitive, status};
 
 /// Newest first. 2026-07-28 is stateless; the others open with `initialize`.
-pub const SUPPORTED: &[&str] = &["2026-07-28", "2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
+pub const SUPPORTED: &[&str] = &[
+    "2026-07-28",
+    "2025-11-25",
+    "2025-06-18",
+    "2025-03-26",
+    "2024-11-05",
+];
 const MODERN: &str = "2026-07-28";
 /// Offered to a legacy client that asks for a version this server lacks.
 const LEGACY_DEFAULT: &str = "2025-06-18";
 const META_VERSION: &str = "io.modelcontextprotocol/protocolVersion";
-const INSTRUCTIONS: &str = "FDS stores knowledge as records -- facts, procedures, document fragments -- \
+const INSTRUCTIONS: &str =
+    "FDS stores knowledge as records -- facts, procedures, document fragments -- \
 each with its source, who verified it and when. fds_query returns records with a confidence of \
 exact, strong, weak or none; it never generates text.";
 
@@ -51,10 +58,10 @@ fn tools(memory: bool) -> Value {
         json!({
             "name": "fds_query",
             "description": "Query a FDS knowledge database. Returns verified facts, procedures, or \
-knowledge fragments with a confidence level (exact, strong, weak, none) and provenance \
-(source, who verified it, when). The database holds domain knowledge that is not in \
-training data; query it before answering questions in its domain. Accents and case do not \
-matter, section headings count, and a file name or path (`docs/brand.md`) finds the sections of that file.",
+        knowledge fragments with a confidence level (exact, strong, weak, none) and provenance \
+        (source, who verified it, when). The database holds domain knowledge that is not in \
+        training data; query it before answering questions in its domain. Accents and case do not \
+        matter, section headings count, and a file name or path (`docs/brand.md`) finds the sections of that file.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -164,10 +171,22 @@ matter, section headings count, and a file name or path (`docs/brand.md`) finds 
 }
 
 fn render(r: &QueryResult) -> String {
-    let mut out = format!("confidence: {}\nrecords: {}\n", r.confidence.as_str(), r.records.len());
+    let mut out = format!(
+        "confidence: {}\nrecords: {}\n",
+        r.confidence.as_str(),
+        r.records.len()
+    );
     for h in &r.records {
-        let sector = h.sector.as_deref().map(|s| format!(" | sector: {s}")).unwrap_or_default();
-        let kind = if h.rtype.is_empty() { h.kind.as_str().to_string() } else { format!("{}/{}", h.kind.as_str(), h.rtype) };
+        let sector = h
+            .sector
+            .as_deref()
+            .map(|s| format!(" | sector: {s}"))
+            .unwrap_or_default();
+        let kind = if h.rtype.is_empty() {
+            h.kind.as_str().to_string()
+        } else {
+            format!("{}/{}", h.kind.as_str(), h.rtype)
+        };
         out.push_str(&format!(
             "\n--- [{kind}] {} ---\nid: {}{sector} | source: {} | verified_by: {} | last_verified: {} | match: {} | score: {}\n",
             h.question.as_deref().unwrap_or(&h.title),
@@ -191,10 +210,18 @@ fn render(r: &QueryResult) -> String {
 fn render_context(b: &ContextBundle) -> String {
     let mut out = format!(
         "context: {}\nhash: {}\ntokens: {}\nrecords: {}\n\n## instructions\n{}\n",
-        b.name, b.hash, b.tokens, b.records.len(), b.instructions
+        b.name,
+        b.hash,
+        b.tokens,
+        b.records.len(),
+        b.instructions
     );
     for h in &b.records {
-        let kind = if h.rtype.is_empty() { h.kind.as_str().to_string() } else { format!("{}/{}", h.kind.as_str(), h.rtype) };
+        let kind = if h.rtype.is_empty() {
+            h.kind.as_str().to_string()
+        } else {
+            format!("{}/{}", h.kind.as_str(), h.rtype)
+        };
         out.push_str(&format!(
             "\n--- [{kind}] {} ---\nsource: {} | verified_by: {} | last_verified: {}\n{}\n",
             h.question.as_deref().unwrap_or(&h.title),
@@ -205,7 +232,10 @@ fn render_context(b: &ContextBundle) -> String {
         ));
     }
     if !b.missing.is_empty() {
-        out.push_str(&format!("\nlinks to records that do not exist yet: {}\n", b.missing.join(", ")));
+        out.push_str(&format!(
+            "\nlinks to records that do not exist yet: {}\n",
+            b.missing.join(", ")
+        ));
     }
     out
 }
@@ -219,7 +249,10 @@ fn text(t: String, is_error: bool) -> Value {
 }
 
 fn arg<'v>(args: &'v Value, key: &str) -> Option<&'v str> {
-    args.get(key).and_then(|v| v.as_str()).map(str::trim).filter(|s| !s.is_empty())
+    args.get(key)
+        .and_then(|v| v.as_str())
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
 }
 
 async fn call(s: &Session<'_>, name: &str, args: &Value) -> Value {
@@ -227,25 +260,42 @@ async fn call(s: &Session<'_>, name: &str, args: &Value) -> Value {
         "fds_status" => {
             if s.views.len() == 1 {
                 let v = &s.views[0];
-                let sum = status::summary(&PathBuf::from(v.name), &v.engine.meta, &v.engine.records);
-                return text(serde_json::to_string_pretty(&sum).unwrap_or_default(), false);
+                let sum =
+                    status::summary(&PathBuf::from(v.name), &v.engine.meta, &v.engine.records);
+                return text(
+                    serde_json::to_string_pretty(&sum).unwrap_or_default(),
+                    false,
+                );
             }
             let all: Vec<Value> = s
                 .views
                 .iter()
                 .map(|v| json!({"sector": v.name, "status": status::summary(&PathBuf::from(v.name), &v.engine.meta, &v.engine.records)}))
                 .collect();
-            text(serde_json::to_string_pretty(&all).unwrap_or_default(), false)
+            text(
+                serde_json::to_string_pretty(&all).unwrap_or_default(),
+                false,
+            )
         }
         "fds_query" => {
             let Some(q) = arg(args, "query") else {
                 return text("missing required parameter: query".into(), true);
             };
             let collection = arg(args, "collection");
-            let budget = args.get("budget").and_then(|v| v.as_u64()).map(|b| b as u32).unwrap_or(DEFAULT_BUDGET);
+            let budget = args
+                .get("budget")
+                .and_then(|v| v.as_u64())
+                .map(|b| b as u32)
+                .unwrap_or(DEFAULT_BUDGET);
             let verified = verified_list(arg(args, "verified_by"));
-            let scope = Scope { collection, verified_by: &verified };
-            let links = args.get("with_links").and_then(|v| v.as_bool()).unwrap_or(false);
+            let scope = Scope {
+                collection,
+                verified_by: &verified,
+            };
+            let links = args
+                .get("with_links")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
             let result = sectors::query(&s.views, q, &scope, budget, links).await;
             text(render(&result), false)
         }
@@ -253,12 +303,28 @@ async fn call(s: &Session<'_>, name: &str, args: &Value) -> Value {
             let since = arg(args, "since").map(String::from);
             if let Some(d) = &since {
                 let b = d.as_bytes();
-                if b.len() != 10 || !b.iter().enumerate().all(|(i, c)| if i == 4 || i == 7 { *c == b'-' } else { c.is_ascii_digit() }) {
+                if b.len() != 10
+                    || !b.iter().enumerate().all(|(i, c)| {
+                        if i == 4 || i == 7 {
+                            *c == b'-'
+                        } else {
+                            c.is_ascii_digit()
+                        }
+                    })
+                {
                     return text(format!("since must be a day, YYYY-MM-DD; got `{d}`"), true);
                 }
             }
-            let limit = args.get("limit").and_then(|v| v.as_u64()).map(|n| n as usize).unwrap_or(50).clamp(1, 500);
-            let timeline = args.get("timeline").and_then(|v| v.as_bool()).unwrap_or(true);
+            let limit = args
+                .get("limit")
+                .and_then(|v| v.as_u64())
+                .map(|n| n as usize)
+                .unwrap_or(50)
+                .clamp(1, 500);
+            let timeline = args
+                .get("timeline")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(true);
             let filter = crate::journal::Filter {
                 branch: arg(args, "branch").map(String::from),
                 agent: arg(args, "agent").map(String::from),
@@ -268,12 +334,19 @@ async fn call(s: &Session<'_>, name: &str, args: &Value) -> Value {
             };
             // The engines hold what this session may read: sensitive records are
             // already stand-ins (§11.4), so the journal cannot show more than a query.
-            let views: Vec<(&str, &[fds::v4::Record])> = s.views.iter().map(|v| (v.name, v.engine.records.as_slice())).collect();
+            let views: Vec<(&str, &[fds::v4::Record])> = s
+                .views
+                .iter()
+                .map(|v| (v.name, v.engine.records.as_slice()))
+                .collect();
             text(crate::journal::read_text(&views, &filter, timeline), false)
         }
         "fds_check" => {
             let (Some(subject), Some(action)) = (arg(args, "subject"), arg(args, "action")) else {
-                return text("missing required parameters: subject and action".into(), true);
+                return text(
+                    "missing required parameters: subject and action".into(),
+                    true,
+                );
             };
             let value = match args.get("value") {
                 Some(Value::String(v)) => Some(v.trim().to_string()).filter(|v| !v.is_empty()),
@@ -281,8 +354,18 @@ async fn call(s: &Session<'_>, name: &str, args: &Value) -> Value {
                 Some(Value::Bool(b)) => Some(b.to_string()),
                 _ => None,
             };
-            let policies: Vec<policy::Policy> = s.views.iter().flat_map(|v| policy::policies(&v.engine.records)).collect();
-            let d = policy::check(&policies, subject, action, value.as_deref(), policy::Fallback::Allow);
+            let policies: Vec<policy::Policy> = s
+                .views
+                .iter()
+                .flat_map(|v| policy::policies(&v.engine.records))
+                .collect();
+            let d = policy::check(
+                &policies,
+                subject,
+                action,
+                value.as_deref(),
+                policy::Fallback::Allow,
+            );
             let body = serde_json::to_string_pretty(&d).unwrap_or_default();
             text(format!("{}\n\n{body}", d.summary()), false)
         }
@@ -294,42 +377,90 @@ async fn call(s: &Session<'_>, name: &str, args: &Value) -> Value {
                 .flat_map(|v| {
                     v.engine.contexts().into_iter().map(move |i| {
                         let b = v.engine.context(i);
-                        let at = if many { format!(" [{}]", v.name) } else { String::new() };
-                        format!("- {}{at} ({} records, {} tokens, hash {})", b.name, b.records.len(), b.tokens, b.hash)
+                        let at = if many {
+                            format!(" [{}]", v.name)
+                        } else {
+                            String::new()
+                        };
+                        format!(
+                            "- {}{at} ({} records, {} tokens, hash {})",
+                            b.name,
+                            b.records.len(),
+                            b.tokens,
+                            b.hash
+                        )
                     })
                 })
                 .collect();
-            text(if list.is_empty() { "no contexts stored".into() } else { list.join("\n") }, false)
+            text(
+                if list.is_empty() {
+                    "no contexts stored".into()
+                } else {
+                    list.join("\n")
+                },
+                false,
+            )
         }
         "fds_context" => {
             let Some(name) = arg(args, "name") else {
                 return text("missing required parameter: name".into(), true);
             };
-            let Some((v, i)) = s.views.iter().find_map(|v| v.engine.find_context(name).map(|i| (v, i))) else {
-                return text(format!("no context named `{name}`; fds_contexts lists them"), true);
+            let Some((v, i)) = s
+                .views
+                .iter()
+                .find_map(|v| v.engine.find_context(name).map(|i| (v, i)))
+            else {
+                return text(
+                    format!("no context named `{name}`; fds_contexts lists them"),
+                    true,
+                );
             };
             let b = v.engine.context(i);
             if arg(args, "known_hash") == Some(b.hash.as_str()) {
-                return text(format!("context {} unchanged (hash {}); keep using the copy you hold", b.name, b.hash), false);
+                return text(
+                    format!(
+                        "context {} unchanged (hash {}); keep using the copy you hold",
+                        b.name, b.hash
+                    ),
+                    false,
+                );
             }
             text(render_context(&b), false)
         }
         "fds_remember" => {
             let Some(m) = s.memory else {
-                return text("this connection is read-only: it has no memory sector to write to".into(), true);
+                return text(
+                    "this connection is read-only: it has no memory sector to write to".into(),
+                    true,
+                );
             };
-            let (Some(question), Some(answer)) = (arg(args, "question"), arg(args, "answer")) else {
-                return text("missing required parameters: question and answer".into(), true);
+            let (Some(question), Some(answer)) = (arg(args, "question"), arg(args, "answer"))
+            else {
+                return text(
+                    "missing required parameters: question and answer".into(),
+                    true,
+                );
             };
             let collection = arg(args, "collection").unwrap_or("memory");
             match remember(m, question, answer, collection) {
-                Ok(id) => text(format!("saved {} in sector {}, as verified_by {}", &id[..id.len().min(12)], m.sector, m.writer), false),
+                Ok(id) => text(
+                    format!(
+                        "saved {} in sector {}, as verified_by {}",
+                        &id[..id.len().min(12)],
+                        m.sector,
+                        m.writer
+                    ),
+                    false,
+                ),
                 Err(e) => text(e, true),
             }
         }
         "fds_log" => {
             let Some(m) = s.memory else {
-                return text("this connection is read-only: it has no memory sector to write to".into(), true);
+                return text(
+                    "this connection is read-only: it has no memory sector to write to".into(),
+                    true,
+                );
             };
             let Some(summary) = arg(args, "summary") else {
                 return text("missing required parameter: summary".into(), true);
@@ -337,7 +468,11 @@ async fn call(s: &Session<'_>, name: &str, args: &Value) -> Value {
             let files: Vec<String> = args
                 .get("files")
                 .and_then(|v| v.as_array())
-                .map(|a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect())
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|x| x.as_str().map(String::from))
+                        .collect()
+                })
                 .unwrap_or_default();
             let at = crate::text::now();
             let draft = crate::journal::Draft {
@@ -352,7 +487,8 @@ async fn call(s: &Session<'_>, name: &str, args: &Value) -> Value {
                 status: arg(args, "status").unwrap_or(""),
                 to: arg(args, "to").unwrap_or(""),
             };
-            let saved = crate::journal::record(&draft, &m.writer).and_then(|r| crate::journal::append(&m.path, r));
+            let saved = crate::journal::record(&draft, &m.writer)
+                .and_then(|r| crate::journal::append(&m.path, r));
             match saved {
                 Ok(id) => text(format!("logged {} in sector {}, as verified_by {}; a person can read it with `fds journal`", &id[..id.len().min(12)], m.sector, m.writer), false),
                 Err(e) => text(e, true),
@@ -360,13 +496,23 @@ async fn call(s: &Session<'_>, name: &str, args: &Value) -> Value {
         }
         "fds_forget" => {
             let Some(m) = s.memory else {
-                return text("this connection is read-only: it has no memory sector to change".into(), true);
+                return text(
+                    "this connection is read-only: it has no memory sector to change".into(),
+                    true,
+                );
             };
             let Some(id) = arg(args, "id") else {
                 return text("missing required parameter: id".into(), true);
             };
             match forget(m, id) {
-                Ok(id) => text(format!("removed {} from sector {}", &id[..id.len().min(12)], m.sector), false),
+                Ok(id) => text(
+                    format!(
+                        "removed {} from sector {}",
+                        &id[..id.len().min(12)],
+                        m.sector
+                    ),
+                    false,
+                ),
                 Err(e) => text(e, true),
             }
         }
@@ -378,7 +524,15 @@ fn remember(m: &Memory, question: &str, answer: &str, collection: &str) -> Resul
     let _lock = db::lock(&m.path)?;
     let (mut meta, mut records) = db::load(&m.path)?;
     let source = format!("agent:{}", m.sector);
-    let id = ops::upsert_fact(&mut records, question, answer, collection, &source, &m.writer, &today())?;
+    let id = ops::upsert_fact(
+        &mut records,
+        question,
+        answer,
+        collection,
+        &source,
+        &m.writer,
+        &today(),
+    )?;
     db::save(&m.path, &mut meta, &records)?;
     Ok(id)
 }
@@ -430,13 +584,25 @@ pub async fn respond(req: &Value, s: &Session<'_>) -> Option<Value> {
     let modern = requested_version(req);
     if let Some(v) = &modern {
         if !SUPPORTED.contains(&v.as_str()) {
-            return Some(error(id, -32022, "Unsupported protocol version", Some(json!({"supported": SUPPORTED, "requested": v}))));
+            return Some(error(
+                id,
+                -32022,
+                "Unsupported protocol version",
+                Some(json!({"supported": SUPPORTED, "requested": v})),
+            ));
         }
     }
     let mut result = match method {
         "initialize" => {
-            let asked = params.get("protocolVersion").and_then(|v| v.as_str()).unwrap_or(LEGACY_DEFAULT);
-            let version = if asked != MODERN && SUPPORTED.contains(&asked) { asked } else { LEGACY_DEFAULT };
+            let asked = params
+                .get("protocolVersion")
+                .and_then(|v| v.as_str())
+                .unwrap_or(LEGACY_DEFAULT);
+            let version = if asked != MODERN && SUPPORTED.contains(&asked) {
+                asked
+            } else {
+                LEGACY_DEFAULT
+            };
             json!({"protocolVersion": version, "capabilities": {"tools": {}}, "serverInfo": server_info(), "instructions": INSTRUCTIONS})
         }
         "server/discover" => json!({
@@ -453,7 +619,14 @@ pub async fn respond(req: &Value, s: &Session<'_>) -> Option<Value> {
             call(s, name, &args).await
         }
         "ping" => json!({}),
-        other => return Some(error(id, -32601, &format!("method not found: {other}"), None)),
+        other => {
+            return Some(error(
+                id,
+                -32601,
+                &format!("method not found: {other}"),
+                None,
+            ))
+        }
     };
     if modern.is_some() && result.get("resultType").is_none() {
         result["resultType"] = json!("complete");
@@ -471,13 +644,22 @@ pub fn header_value(v: &str) -> String {
     if plain {
         v.to_string()
     } else {
-        format!("=?base64?{}?=", base64::engine::general_purpose::STANDARD.encode(v.as_bytes()))
+        format!(
+            "=?base64?{}?=",
+            base64::engine::general_purpose::STANDARD.encode(v.as_bytes())
+        )
     }
 }
 
 fn decode_header(v: &str) -> Option<String> {
-    match v.strip_prefix("=?base64?").and_then(|r| r.strip_suffix("?=")) {
-        Some(b) => base64::engine::general_purpose::STANDARD.decode(b).ok().and_then(|d| String::from_utf8(d).ok()),
+    match v
+        .strip_prefix("=?base64?")
+        .and_then(|r| r.strip_suffix("?="))
+    {
+        Some(b) => base64::engine::general_purpose::STANDARD
+            .decode(b)
+            .ok()
+            .and_then(|d| String::from_utf8(d).ok()),
         None => Some(v.to_string()),
     }
 }
@@ -492,16 +674,27 @@ pub fn check_headers(req: &Value, header: impl Fn(&str) -> Option<String>) -> Re
     let method = req.get("method").and_then(|m| m.as_str()).unwrap_or("");
     match header("mcp-protocol-version") {
         Some(h) if h == version => {}
-        Some(h) => return Err(format!("MCP-Protocol-Version `{h}` does not match the body's `{version}`")),
+        Some(h) => {
+            return Err(format!(
+                "MCP-Protocol-Version `{h}` does not match the body's `{version}`"
+            ))
+        }
         None => return Err("missing MCP-Protocol-Version header".into()),
     }
     match header("mcp-method") {
         Some(h) if h == method => {}
-        Some(h) => return Err(format!("Mcp-Method `{h}` does not match the body's `{method}`")),
+        Some(h) => {
+            return Err(format!(
+                "Mcp-Method `{h}` does not match the body's `{method}`"
+            ))
+        }
         None => return Err("missing Mcp-Method header".into()),
     }
     if method == "tools/call" {
-        let name = req.pointer("/params/name").and_then(|n| n.as_str()).unwrap_or("");
+        let name = req
+            .pointer("/params/name")
+            .and_then(|n| n.as_str())
+            .unwrap_or("");
         match header("mcp-name").and_then(|h| decode_header(&h)) {
             Some(h) if h == name => {}
             Some(h) => return Err(format!("Mcp-Name `{h}` does not match the body's `{name}`")),
@@ -512,7 +705,12 @@ pub fn check_headers(req: &Value, header: impl Fn(&str) -> Option<String>) -> Re
 }
 
 pub fn header_mismatch(id: Option<Value>, message: &str) -> Value {
-    error(id.unwrap_or(Value::Null), -32020, &format!("Header mismatch: {message}"), None)
+    error(
+        id.unwrap_or(Value::Null),
+        -32020,
+        &format!("Header mismatch: {message}"),
+        None,
+    )
 }
 
 struct Loaded {
@@ -524,19 +722,31 @@ struct Loaded {
 
 /// `fds mcp` over stdio. `files` are the sectors this agent sees, its own
 /// first; `memory`, when given, is where `fds_remember` writes.
-pub async fn run(files: Vec<(String, PathBuf)>, memory: Option<Memory>, clearance: Vec<String>) -> Result<(), String> {
+pub async fn run(
+    files: Vec<(String, PathBuf)>,
+    memory: Option<Memory>,
+    clearance: Vec<String>,
+) -> Result<(), String> {
     let mut loaded = Vec::with_capacity(files.len());
     for (name, path) in files {
         let (meta, records) = db::load(&path)?;
         let records = sensitive::redact(&records, &clearance);
-        loaded.push(Loaded { stamp: db::stamp(&path), engine: Engine::new(meta, records), name, path });
+        loaded.push(Loaded {
+            stamp: db::stamp(&path),
+            engine: Engine::new(meta, records),
+            name,
+            path,
+        });
     }
     let total: usize = loaded.iter().map(|l| l.engine.records.len()).sum();
     let names: Vec<&str> = loaded.iter().map(|l| l.name.as_str()).collect();
     eprintln!(
         "fds mcp: {} ({total} records){}",
         names.join(" + "),
-        memory.as_ref().map(|m| format!(", remembers into `{}`", m.sector)).unwrap_or_default()
+        memory
+            .as_ref()
+            .map(|m| format!(", remembers into `{}`", m.sector))
+            .unwrap_or_default()
     );
 
     let mut lines = BufReader::new(tokio::io::stdin()).lines();
@@ -562,7 +772,13 @@ pub async fn run(files: Vec<(String, PathBuf)>, memory: Option<Memory>, clearanc
             }
         }
         let session = Session {
-            views: loaded.iter().map(|l| View { name: &l.name, engine: &l.engine }).collect(),
+            views: loaded
+                .iter()
+                .map(|l| View {
+                    name: &l.name,
+                    engine: &l.engine,
+                })
+                .collect(),
             memory: memory.as_ref(),
         };
         let Some(resp) = respond(&req, &session).await else {
@@ -583,9 +799,19 @@ pub async fn run(files: Vec<(String, PathBuf)>, memory: Option<Memory>, clearanc
 /// server that holds the files. The agent key comes from `FDS_KEY`, never
 /// from the command line, where other processes could read it.
 pub async fn connect(url: &str) -> Result<(), String> {
-    let key = std::env::var("FDS_KEY").ok().map(|k| k.trim().to_string()).filter(|k| !k.is_empty());
+    let key = std::env::var("FDS_KEY")
+        .ok()
+        .map(|k| k.trim().to_string())
+        .filter(|k| !k.is_empty());
     let client = reqwest::Client::new();
-    eprintln!("fds mcp: forwarding to {url}{}", if key.is_some() { " with the key in FDS_KEY" } else { " without a key (read-only)" });
+    eprintln!(
+        "fds mcp: forwarding to {url}{}",
+        if key.is_some() {
+            " with the key in FDS_KEY"
+        } else {
+            " without a key (read-only)"
+        }
+    );
 
     let mut lines = BufReader::new(tokio::io::stdin()).lines();
     let mut stdout = tokio::io::stdout();
@@ -608,7 +834,9 @@ pub async fn connect(url: &str) -> Result<(), String> {
         }
         if let Some(v) = requested_version(&req) {
             let method = req.get("method").and_then(|m| m.as_str()).unwrap_or("");
-            rb = rb.header("MCP-Protocol-Version", v).header("Mcp-Method", method);
+            rb = rb
+                .header("MCP-Protocol-Version", v)
+                .header("Mcp-Method", method);
             if let Some(name) = req.pointer("/params/name").and_then(|n| n.as_str()) {
                 rb = rb.header("Mcp-Name", header_value(name));
             }
@@ -619,10 +847,24 @@ pub async fn connect(url: &str) -> Result<(), String> {
                 let body = res.text().await.unwrap_or_default();
                 match serde_json::from_str::<Value>(&body) {
                     Ok(v) if v.get("jsonrpc").is_some() => Some(v),
-                    _ => id.clone().map(|id| error(id, -32603, &format!("fds serve answered {status}: {}", body.trim()), None)),
+                    _ => id.clone().map(|id| {
+                        error(
+                            id,
+                            -32603,
+                            &format!("fds serve answered {status}: {}", body.trim()),
+                            None,
+                        )
+                    }),
                 }
             }
-            Err(e) => id.clone().map(|id| error(id, -32603, &format!("cannot reach fds serve at {url}: {e}"), None)),
+            Err(e) => id.clone().map(|id| {
+                error(
+                    id,
+                    -32603,
+                    &format!("cannot reach fds serve at {url}: {e}"),
+                    None,
+                )
+            }),
         };
         // A notification gets no answer, whatever the server sent back.
         let (Some(_), Some(reply)) = (id, reply) else {
@@ -645,7 +887,16 @@ mod tests {
 
     fn engine() -> Engine {
         let mut records = Vec::new();
-        ops::upsert_fact(&mut records, "office wifi password", "ask reception", "default", "test", "human", "2026-10-12").unwrap();
+        ops::upsert_fact(
+            &mut records,
+            "office wifi password",
+            "ask reception",
+            "default",
+            "test",
+            "human",
+            "2026-10-12",
+        )
+        .unwrap();
         Engine::new(DbMeta::default(), records)
     }
 
@@ -653,39 +904,80 @@ mod tests {
     #[tokio::test]
     async fn a_records_type_and_attributes_are_rendered_for_the_agent() {
         let mut records = Vec::new();
-        let id = ops::upsert_fact(&mut records, "foto de la fachada", "Fachada con toldo naranja", "imagenes", "img/fachada.jpg", "human", "2026-10-15").unwrap();
+        let id = ops::upsert_fact(
+            &mut records,
+            "foto de la fachada",
+            "Fachada con toldo naranja",
+            "imagenes",
+            "img/fachada.jpg",
+            "human",
+            "2026-10-15",
+        )
+        .unwrap();
         let r = records.iter_mut().find(|r| r.id == id).unwrap();
         r.rtype = "image".into();
         r.attrs.insert("file".into(), "img/fachada.jpg".into());
         r.attrs.insert("alt".into(), "Fachada con toldo".into());
         let e = Engine::new(DbMeta::default(), records);
-        let s = Session { views: vec![View { name: "kb", engine: &e }], memory: None };
-        let r = respond(&json!({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
-            "params": {"name": "fds_query", "arguments": {"query": "foto de la fachada"}}}), &s).await.unwrap();
+        let s = Session {
+            views: vec![View {
+                name: "kb",
+                engine: &e,
+            }],
+            memory: None,
+        };
+        let r = respond(
+            &json!({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+            "params": {"name": "fds_query", "arguments": {"query": "foto de la fachada"}}}),
+            &s,
+        )
+        .await
+        .unwrap();
         let text = r["result"]["content"][0]["text"].as_str().unwrap();
         assert!(text.contains("[fact/image]"), "{text}");
-        assert!(text.contains("alt=Fachada con toldo") && text.contains("file=img/fachada.jpg"), "{text}");
+        assert!(
+            text.contains("alt=Fachada con toldo") && text.contains("file=img/fachada.jpg"),
+            "{text}"
+        );
     }
 
     #[tokio::test]
     async fn legacy_and_modern_clients_are_both_served() {
         let e = engine();
-        let s = Session { views: vec![View { name: "kb", engine: &e }], memory: None };
+        let s = Session {
+            views: vec![View {
+                name: "kb",
+                engine: &e,
+            }],
+            memory: None,
+        };
         let legacy = respond(&json!({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18"}}), &s)
             .await
             .unwrap();
         assert_eq!(legacy["result"]["protocolVersion"], "2025-06-18");
         let meta = json!({META_VERSION: MODERN});
-        let modern = respond(&json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {"_meta": meta}}), &s)
-            .await
-            .unwrap();
+        let modern = respond(
+            &json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {"_meta": meta}}),
+            &s,
+        )
+        .await
+        .unwrap();
         assert_eq!(modern["result"]["resultType"], "complete");
-        assert_eq!(modern["result"]["tools"].as_array().unwrap().len(), 6, "read-only: no memory tools");
+        assert_eq!(
+            modern["result"]["tools"].as_array().unwrap().len(),
+            6,
+            "read-only: no memory tools"
+        );
         let unknown = respond(&json!({"jsonrpc": "2.0", "id": 3, "method": "tools/list", "params": {"_meta": {META_VERSION: "1900-01-01"}}}), &s)
             .await
             .unwrap();
         assert_eq!(unknown["error"]["code"], -32022);
-        assert!(respond(&json!({"jsonrpc": "2.0", "method": "notifications/initialized"}), &s).await.is_none());
+        assert!(respond(
+            &json!({"jsonrpc": "2.0", "method": "notifications/initialized"}),
+            &s
+        )
+        .await
+        .is_none());
     }
 
     #[test]
@@ -704,7 +996,10 @@ mod tests {
             other => ok(other),
         };
         assert!(check_headers(&req, lying).is_err());
-        assert_eq!(decode_header(&header_value("año ñandú")).as_deref(), Some("año ñandú"));
+        assert_eq!(
+            decode_header(&header_value("año ñandú")).as_deref(),
+            Some("año ñandú")
+        );
     }
 
     #[tokio::test]
@@ -713,9 +1008,22 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("sales.fds");
         let mut records = Vec::new();
-        ops::upsert_fact(&mut records, "refund window", "30 days", "default", "manual", "human", "2026-10-12").unwrap();
+        ops::upsert_fact(
+            &mut records,
+            "refund window",
+            "30 days",
+            "default",
+            "manual",
+            "human",
+            "2026-10-12",
+        )
+        .unwrap();
         db::save(&path, &mut DbMeta::default(), &records).unwrap();
-        let m = Memory { path: path.clone(), sector: "sales".into(), writer: "model:sales".into() };
+        let m = Memory {
+            path: path.clone(),
+            sector: "sales".into(),
+            writer: "model:sales".into(),
+        };
 
         let id = remember(&m, "client acme prefers", "invoices in USD", "memory").unwrap();
         let (_, records) = db::load(&path).unwrap();
@@ -723,7 +1031,12 @@ mod tests {
         assert_eq!(r.verified_by, "model:sales");
         assert!(forget(&m, &id).is_ok());
 
-        let human = records.iter().find(|r| r.verified_by == "human").unwrap().id.clone();
+        let human = records
+            .iter()
+            .find(|r| r.verified_by == "human")
+            .unwrap()
+            .id
+            .clone();
         assert!(forget(&m, &human).is_err(), "a person's record stays");
         assert_eq!(db::load(&path).unwrap().1.len(), 1);
         std::fs::remove_dir_all(&dir).ok();
@@ -734,8 +1047,25 @@ mod tests {
         rows.iter()
             .enumerate()
             .map(|(i, (summary, agent, at, role, to))| {
-                let d = crate::journal::Draft { summary, agent, at, role, to, why: "because reasons", branch: "feat/x", ..Default::default() };
-                let mut r = crate::journal::record(&d, &if agent.is_empty() { "human".to_string() } else { format!("model:{agent}") }).unwrap();
+                let d = crate::journal::Draft {
+                    summary,
+                    agent,
+                    at,
+                    role,
+                    to,
+                    why: "because reasons",
+                    branch: "feat/x",
+                    ..Default::default()
+                };
+                let mut r = crate::journal::record(
+                    &d,
+                    &if agent.is_empty() {
+                        "human".to_string()
+                    } else {
+                        format!("model:{agent}")
+                    },
+                )
+                .unwrap();
                 r.attrs.insert("seq".into(), (i + 1).to_string());
                 r
             })
@@ -746,24 +1076,67 @@ mod tests {
         let r = respond(&json!({"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "fds_journal", "arguments": args}}), s)
             .await
             .unwrap();
-        (r["result"]["content"][0]["text"].as_str().unwrap().to_string(), r["result"]["isError"] == true)
+        (
+            r["result"]["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .to_string(),
+            r["result"]["isError"] == true,
+        )
     }
 
     #[tokio::test]
     async fn a_reviewer_reads_the_journal_without_memory_and_it_only_reads() {
         let recs = journal_records(&[
             ("problem recognized", "", "2026-10-23T10:00:00Z", "me", ""),
-            ("technical decision delegated", "claude-r", "2026-10-23T10:00:01Z", "reasoning", "decision agent"),
-            ("task 1", "claude-e1", "2026-10-23T10:00:02Z", "execution", ""),
-            ("task 2", "claude-e2", "2026-10-24T09:00:00Z", "execution", ""),
+            (
+                "technical decision delegated",
+                "claude-r",
+                "2026-10-23T10:00:01Z",
+                "reasoning",
+                "decision agent",
+            ),
+            (
+                "task 1",
+                "claude-e1",
+                "2026-10-23T10:00:02Z",
+                "execution",
+                "",
+            ),
+            (
+                "task 2",
+                "claude-e2",
+                "2026-10-24T09:00:00Z",
+                "execution",
+                "",
+            ),
         ]);
         let before = recs.clone();
         let e = Engine::new(DbMeta::default(), recs);
-        let s = Session { views: vec![View { name: "kb", engine: &e }], memory: None };
+        let s = Session {
+            views: vec![View {
+                name: "kb",
+                engine: &e,
+            }],
+            memory: None,
+        };
 
-        let listed = respond(&json!({"jsonrpc": "2.0", "id": 1, "method": "tools/list"}), &s).await.unwrap();
-        let names: Vec<&str> = listed["result"]["tools"].as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap()).collect();
-        assert!(names.contains(&"fds_journal") && !names.contains(&"fds_log"), "{names:?}");
+        let listed = respond(
+            &json!({"jsonrpc": "2.0", "id": 1, "method": "tools/list"}),
+            &s,
+        )
+        .await
+        .unwrap();
+        let names: Vec<&str> = listed["result"]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|t| t["name"].as_str().unwrap())
+            .collect();
+        assert!(
+            names.contains(&"fds_journal") && !names.contains(&"fds_log"),
+            "{names:?}"
+        );
 
         // The timeline, oldest first, as `fds journal show --timeline` prints it, then the detail.
         let (t, err) = journal_text(&s, json!({})).await;
@@ -771,20 +1144,35 @@ mod tests {
         let want = "#01 [me] problem recognized\n#02 [reasoning] technical decision delegated \u{2192} decision agent\n#03 [execution] task 1\n#04 [execution] task 2\n";
         assert!(t.starts_with(want), "{t}");
         assert!(t.contains("#02 technical decision delegated\n    by agent `claude-r`, not yet reviewed | 2026-10-23 10:00 | branch feat/x\n    why: because reasons"), "{t}");
-        assert!(t.contains("#01 problem recognized\n    by a person |"), "{t}");
+        assert!(
+            t.contains("#01 problem recognized\n    by a person |"),
+            "{t}"
+        );
 
         // The plain list is the one `fds journal show` prints: newest first.
         let (t, _) = journal_text(&s, json!({"timeline": false})).await;
-        assert!(t.find("task 2").unwrap() < t.find("problem recognized").unwrap(), "{t}");
+        assert!(
+            t.find("task 2").unwrap() < t.find("problem recognized").unwrap(),
+            "{t}"
+        );
         assert!(!t.contains("#01"), "{t}");
 
         // limit keeps the newest and still reads oldest first; agent and role filter.
         let (t, _) = journal_text(&s, json!({"limit": 2})).await;
-        assert!(t.starts_with("#01 [execution] task 1\n#02 [execution] task 2\n"), "{t}");
+        assert!(
+            t.starts_with("#01 [execution] task 1\n#02 [execution] task 2\n"),
+            "{t}"
+        );
         let (t, _) = journal_text(&s, json!({"role": "execution"})).await;
-        assert!(t.starts_with("#01 [execution] task 1\n#02 [execution] task 2\n\n"), "{t}");
+        assert!(
+            t.starts_with("#01 [execution] task 1\n#02 [execution] task 2\n\n"),
+            "{t}"
+        );
         let (t, _) = journal_text(&s, json!({"agent": "claude-r"})).await;
-        assert!(t.starts_with("#01 [reasoning] technical decision delegated") && !t.contains("task"), "{t}");
+        assert!(
+            t.starts_with("#01 [reasoning] technical decision delegated") && !t.contains("task"),
+            "{t}"
+        );
         let (t, _) = journal_text(&s, json!({"since": "2026-10-24"})).await;
         assert!(t.contains("task 2") && !t.contains("task 1"), "{t}");
         let (t, err) = journal_text(&s, json!({"since": "yesterday"})).await;
@@ -796,43 +1184,117 @@ mod tests {
     #[tokio::test]
     async fn an_empty_journal_says_so_and_is_not_an_error() {
         let e = Engine::new(DbMeta::default(), Vec::new());
-        let s = Session { views: vec![View { name: "kb", engine: &e }], memory: None };
+        let s = Session {
+            views: vec![View {
+                name: "kb",
+                engine: &e,
+            }],
+            memory: None,
+        };
         let (t, err) = journal_text(&s, json!({})).await;
-        assert!(!err && t.trim() == "el registro est\u{e1} vac\u{ed}o", "{t}");
+        assert!(
+            !err && t.trim() == "el registro est\u{e1} vac\u{ed}o",
+            "{t}"
+        );
         let (t, err) = journal_text(&s, json!({"timeline": false, "agent": "nobody"})).await;
-        assert!(!err && t.starts_with("el registro est\u{e1} vac\u{ed}o"), "{t}");
+        assert!(
+            !err && t.starts_with("el registro est\u{e1} vac\u{ed}o"),
+            "{t}"
+        );
     }
 
     #[tokio::test]
     async fn the_journal_reads_every_sector_and_hides_what_the_agent_may_not_read() {
-        let shared = journal_records(&[("shared change", "claude-s", "2026-10-23T08:00:00Z", "", "")]);
-        let mut mine = journal_records(&[("own change", "claude-o", "2026-10-23T09:00:00Z", "", "")]);
+        let shared =
+            journal_records(&[("shared change", "claude-s", "2026-10-23T08:00:00Z", "", "")]);
+        let mut mine =
+            journal_records(&[("own change", "claude-o", "2026-10-23T09:00:00Z", "", "")]);
         // A sensitive entry: the stand-in must reach the reader, never the text.
-        let mut secret = journal_records(&[("Rotated the vault key", "claude-o", "2026-10-23T09:30:00Z", "", "")]).remove(0);
+        let mut secret = journal_records(&[(
+            "Rotated the vault key",
+            "claude-o",
+            "2026-10-23T09:30:00Z",
+            "",
+            "",
+        )])
+        .remove(0);
         secret.body = "new key is hunter2, stored in /etc/vault".into();
-        secret.attrs.insert("files".into(), "secrets/vault.env".into());
+        secret
+            .attrs
+            .insert("files".into(), "secrets/vault.env".into());
         secret.attrs.insert("sensitivity".into(), "secret".into());
-        secret.attrs.insert("derived".into(), "a credential was rotated".into());
+        secret
+            .attrs
+            .insert("derived".into(), "a credential was rotated".into());
         mine.push(secret);
 
-        let view = |records: &[fds::v4::Record], clearance: &[String]| Engine::new(DbMeta::default(), crate::sensitive::redact(records, clearance));
+        let view = |records: &[fds::v4::Record], clearance: &[String]| {
+            Engine::new(
+                DbMeta::default(),
+                crate::sensitive::redact(records, clearance),
+            )
+        };
         let (shared_e, mine_e) = (view(&shared, &[]), view(&mine, &[]));
-        let s = Session { views: vec![View { name: "ops", engine: &mine_e }, View { name: "shared", engine: &shared_e }], memory: None };
+        let s = Session {
+            views: vec![
+                View {
+                    name: "ops",
+                    engine: &mine_e,
+                },
+                View {
+                    name: "shared",
+                    engine: &shared_e,
+                },
+            ],
+            memory: None,
+        };
         let (t, _) = journal_text(&s, json!({})).await;
-        assert!(t.contains("shared change") && t.contains("own change") && t.contains("Rotated the vault key"), "{t}");
-        assert!(t.contains("sector shared") && t.contains("sector ops"), "every entry carries its sector: {t}");
-        assert!(t.contains("a credential was rotated") && t.contains("by a protected record"), "{t}");
-        for leak in ["hunter2", "/etc/vault", "secrets/vault.env", "claude-o, not yet"] {
+        assert!(
+            t.contains("shared change")
+                && t.contains("own change")
+                && t.contains("Rotated the vault key"),
+            "{t}"
+        );
+        assert!(
+            t.contains("sector shared") && t.contains("sector ops"),
+            "every entry carries its sector: {t}"
+        );
+        assert!(
+            t.contains("a credential was rotated") && t.contains("by a protected record"),
+            "{t}"
+        );
+        for leak in [
+            "hunter2",
+            "/etc/vault",
+            "secrets/vault.env",
+            "claude-o, not yet",
+        ] {
             assert!(!t.contains(leak), "`{leak}` leaked:\n{t}");
         }
         let (plain, _) = journal_text(&s, json!({"timeline": false})).await;
-        assert!(!plain.contains("hunter2") && !plain.contains("vault.env") && plain.contains("a credential was rotated"), "{plain}");
+        assert!(
+            !plain.contains("hunter2")
+                && !plain.contains("vault.env")
+                && plain.contains("a credential was rotated"),
+            "{plain}"
+        );
 
         // A sector cleared for `secret` reads it in full.
         let cleared = view(&mine, &["secret".to_string()]);
-        let s = Session { views: vec![View { name: "ops", engine: &cleared }], memory: None };
+        let s = Session {
+            views: vec![View {
+                name: "ops",
+                engine: &cleared,
+            }],
+            memory: None,
+        };
         let (t, _) = journal_text(&s, json!({})).await;
-        assert!(t.contains("hunter2") && t.contains("secrets/vault.env") && t.contains("agent `claude-o`"), "{t}");
+        assert!(
+            t.contains("hunter2")
+                && t.contains("secrets/vault.env")
+                && t.contains("agent `claude-o`"),
+            "{t}"
+        );
     }
 
     #[tokio::test]
@@ -841,34 +1303,79 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("backend.fds");
         db::save(&path, &mut DbMeta::default(), &[]).unwrap();
-        let m = Memory { path: path.clone(), sector: "backend".into(), writer: "model:backend".into() };
+        let m = Memory {
+            path: path.clone(),
+            sector: "backend".into(),
+            writer: "model:backend".into(),
+        };
         let e = Engine::new(DbMeta::default(), Vec::new());
-        let with = Session { views: vec![View { name: "backend", engine: &e }], memory: Some(&m) };
+        let with = Session {
+            views: vec![View {
+                name: "backend",
+                engine: &e,
+            }],
+            memory: Some(&m),
+        };
         let call = |args: Value| json!({"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "fds_log", "arguments": args}});
 
-        let listed = respond(&json!({"jsonrpc": "2.0", "id": 1, "method": "tools/list"}), &with).await.unwrap();
-        assert!(listed["result"]["tools"].as_array().unwrap().iter().any(|t| t["name"] == "fds_log"));
+        let listed = respond(
+            &json!({"jsonrpc": "2.0", "id": 1, "method": "tools/list"}),
+            &with,
+        )
+        .await
+        .unwrap();
+        assert!(listed["result"]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|t| t["name"] == "fds_log"));
 
-        let r = respond(&call(json!({
-            "summary": "Add a rate limit to /login",
-            "why": "Five failures in a minute lock the address for ten.",
-            "files": ["src/auth.rs", "src/auth.rs", "tests/auth.rs"],
-            "branch": "feat/login", "commit": "a1b2c3d"
-        })), &with).await.unwrap();
+        let r = respond(
+            &call(json!({
+                "summary": "Add a rate limit to /login",
+                "why": "Five failures in a minute lock the address for ten.",
+                "files": ["src/auth.rs", "src/auth.rs", "tests/auth.rs"],
+                "branch": "feat/login", "commit": "a1b2c3d"
+            })),
+            &with,
+        )
+        .await
+        .unwrap();
         assert!(r["result"]["isError"].is_null(), "{r}");
         let (_, records) = db::load(&path).unwrap();
         let entries = crate::journal::entries(&records, "", &Default::default());
         assert_eq!(entries.len(), 1);
         let en = &entries[0];
-        assert_eq!((en.agent.as_str(), en.branch.as_str(), en.commit.as_str(), en.reviewed), ("backend", "feat/login", "a1b2c3d", false));
+        assert_eq!(
+            (
+                en.agent.as_str(),
+                en.branch.as_str(),
+                en.commit.as_str(),
+                en.reviewed
+            ),
+            ("backend", "feat/login", "a1b2c3d", false)
+        );
         assert_eq!(en.files, ["src/auth.rs", "tests/auth.rs"]);
-        assert_eq!(records[0].verified_by, "model:backend", "an agent's entry waits for a person");
+        assert_eq!(
+            records[0].verified_by, "model:backend",
+            "an agent's entry waits for a person"
+        );
 
         // The summary is required; a connection without memory cannot log.
-        let bad = respond(&call(json!({"why": "no summary"})), &with).await.unwrap();
+        let bad = respond(&call(json!({"why": "no summary"})), &with)
+            .await
+            .unwrap();
         assert_eq!(bad["result"]["isError"], true);
-        let read_only = Session { views: vec![View { name: "backend", engine: &e }], memory: None };
-        let denied = respond(&call(json!({"summary": "x"})), &read_only).await.unwrap();
+        let read_only = Session {
+            views: vec![View {
+                name: "backend",
+                engine: &e,
+            }],
+            memory: None,
+        };
+        let denied = respond(&call(json!({"summary": "x"})), &read_only)
+            .await
+            .unwrap();
         assert_eq!(denied["result"]["isError"], true);
         std::fs::remove_dir_all(&dir).ok();
     }

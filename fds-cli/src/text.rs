@@ -10,25 +10,206 @@ use unicode_normalization::UnicodeNormalization;
 
 const STOPWORDS: &[&str] = &[
     // English
-    "a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are",
-    "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but",
-    "by", "can", "cannot", "could", "did", "do", "does", "doing", "down", "during", "each", "few",
-    "for", "from", "further", "had", "has", "have", "having", "he", "her", "here", "hers",
-    "herself", "him", "himself", "his", "how", "i", "if", "in", "into", "is", "it", "its",
-    "itself", "just", "me", "more", "most", "my", "myself", "no", "nor", "not", "now", "of",
-    "off", "on", "once", "only", "or", "other", "our", "ours", "ourselves", "out", "over", "own",
-    "same", "she", "should", "so", "some", "such", "than", "that", "the", "their", "theirs",
-    "them", "themselves", "then", "there", "these", "they", "this", "those", "through", "to",
-    "too", "under", "until", "up", "very", "was", "we", "were", "what", "when", "where", "which",
-    "while", "who", "whom", "why", "will", "with", "would", "you", "your", "yours", "yourself",
+    "a",
+    "about",
+    "above",
+    "after",
+    "again",
+    "against",
+    "all",
+    "am",
+    "an",
+    "and",
+    "any",
+    "are",
+    "as",
+    "at",
+    "be",
+    "because",
+    "been",
+    "before",
+    "being",
+    "below",
+    "between",
+    "both",
+    "but",
+    "by",
+    "can",
+    "cannot",
+    "could",
+    "did",
+    "do",
+    "does",
+    "doing",
+    "down",
+    "during",
+    "each",
+    "few",
+    "for",
+    "from",
+    "further",
+    "had",
+    "has",
+    "have",
+    "having",
+    "he",
+    "her",
+    "here",
+    "hers",
+    "herself",
+    "him",
+    "himself",
+    "his",
+    "how",
+    "i",
+    "if",
+    "in",
+    "into",
+    "is",
+    "it",
+    "its",
+    "itself",
+    "just",
+    "me",
+    "more",
+    "most",
+    "my",
+    "myself",
+    "no",
+    "nor",
+    "not",
+    "now",
+    "of",
+    "off",
+    "on",
+    "once",
+    "only",
+    "or",
+    "other",
+    "our",
+    "ours",
+    "ourselves",
+    "out",
+    "over",
+    "own",
+    "same",
+    "she",
+    "should",
+    "so",
+    "some",
+    "such",
+    "than",
+    "that",
+    "the",
+    "their",
+    "theirs",
+    "them",
+    "themselves",
+    "then",
+    "there",
+    "these",
+    "they",
+    "this",
+    "those",
+    "through",
+    "to",
+    "too",
+    "under",
+    "until",
+    "up",
+    "very",
+    "was",
+    "we",
+    "were",
+    "what",
+    "when",
+    "where",
+    "which",
+    "while",
+    "who",
+    "whom",
+    "why",
+    "will",
+    "with",
+    "would",
+    "you",
+    "your",
+    "yours",
+    "yourself",
     "yourselves",
     // Spanish
-    "el", "la", "los", "las", "un", "una", "unos", "unas", "de", "del", "al", "y", "o", "u",
-    "que", "en", "es", "son", "por", "para", "con", "sin", "se", "su", "sus", "lo", "le", "les",
-    "como", "cómo", "qué", "cuál", "cuáles", "cuánto", "cuánta", "cuántos", "cuántas", "cuando",
-    "cuándo", "donde", "dónde", "quién", "quiénes", "este", "esta", "estos", "estas", "ese", "esa",
-    "esos", "esas", "hay", "ser", "está", "están", "fue", "era", "mi", "mis", "tu", "tus", "me",
-    "te", "nos", "ya", "muy", "más", "pero", "si", "también", "entre", "sobre",
+    "el",
+    "la",
+    "los",
+    "las",
+    "un",
+    "una",
+    "unos",
+    "unas",
+    "de",
+    "del",
+    "al",
+    "y",
+    "o",
+    "u",
+    "que",
+    "en",
+    "es",
+    "son",
+    "por",
+    "para",
+    "con",
+    "sin",
+    "se",
+    "su",
+    "sus",
+    "lo",
+    "le",
+    "les",
+    "como",
+    "cómo",
+    "qué",
+    "cuál",
+    "cuáles",
+    "cuánto",
+    "cuánta",
+    "cuántos",
+    "cuántas",
+    "cuando",
+    "cuándo",
+    "donde",
+    "dónde",
+    "quién",
+    "quiénes",
+    "este",
+    "esta",
+    "estos",
+    "estas",
+    "ese",
+    "esa",
+    "esos",
+    "esas",
+    "hay",
+    "ser",
+    "está",
+    "están",
+    "fue",
+    "era",
+    "mi",
+    "mis",
+    "tu",
+    "tus",
+    "me",
+    "te",
+    "nos",
+    "ya",
+    "muy",
+    "más",
+    "pero",
+    "si",
+    "también",
+    "entre",
+    "sobre",
 ];
 
 fn stopwords() -> &'static HashSet<&'static str> {
@@ -318,7 +499,12 @@ pub fn now() -> String {
     let d = doy - (153 * mp + 2) / 5 + 1;
     let m = if mp < 10 { mp + 3 } else { mp - 9 };
     let y = if m <= 2 { y + 1 } else { y };
-    format!("{y:04}-{m:02}-{d:02}T{:02}:{:02}:{:02}Z", rest / 3600, rest % 3600 / 60, rest % 60)
+    format!(
+        "{y:04}-{m:02}-{d:02}T{:02}:{:02}:{:02}Z",
+        rest / 3600,
+        rest % 3600 / 60,
+        rest % 60
+    )
 }
 
 pub fn word_count(text: &str) -> u32 {
@@ -372,19 +558,34 @@ mod tests {
 
     #[test]
     fn canonical_strips_punctuation_and_case() {
-        assert_eq!(canonical("What is the LM317's  reference, voltage?"), "what is the lm317 s reference voltage");
+        assert_eq!(
+            canonical("What is the LM317's  reference, voltage?"),
+            "what is the lm317 s reference voltage"
+        );
     }
 
     #[test]
     fn spanish_accents_survive() {
-        assert_eq!(content_tokens("¿Cuál es la tensión máxima?"), vec!["tensión", "máxima"]);
+        assert_eq!(
+            content_tokens("¿Cuál es la tensión máxima?"),
+            vec!["tensión", "máxima"]
+        );
     }
 
     #[test]
     fn search_terms_fold_accents_but_content_tokens_keep_them() {
-        assert_eq!(search_terms("¿Cuál es la tensión máxima?"), vec!["tension", "maxima"]);
-        assert_eq!(content_tokens("¿Cuál es la tensión máxima?"), vec!["tensión", "máxima"]);
-        assert_eq!(search_terms("horario de atencion"), search_terms("horario de atención"));
+        assert_eq!(
+            search_terms("¿Cuál es la tensión máxima?"),
+            vec!["tension", "maxima"]
+        );
+        assert_eq!(
+            content_tokens("¿Cuál es la tensión máxima?"),
+            vec!["tensión", "máxima"]
+        );
+        assert_eq!(
+            search_terms("horario de atencion"),
+            search_terms("horario de atención")
+        );
         // Marks of other scripts are part of the word and stay.
         assert_eq!(search_terms("\u{915}\u{93e}"), vec!["\u{915}\u{93e}"]);
         assert_eq!(search_fold("ñandú"), "nandu");
@@ -420,7 +621,10 @@ mod tests {
             ("café", "cafe\u{301}"),
             ("Ñandú", "N\u{303}andu\u{301}"),
             ("Å", "A\u{30A}"),
-            ("한국어", "\u{1112}\u{1161}\u{11AB}\u{1100}\u{116E}\u{11A8}\u{110B}\u{1165}"),
+            (
+                "한국어",
+                "\u{1112}\u{1161}\u{11AB}\u{1100}\u{116E}\u{11A8}\u{110B}\u{1165}",
+            ),
         ] {
             assert_eq!(terms(a), terms(b), "{a:?} vs {b:?}");
         }
@@ -445,7 +649,10 @@ mod tests {
     fn unspaced_scripts_give_units_and_pairs() {
         assert_eq!(terms("拉巴斯"), vec!["拉", "拉巴", "巴", "巴斯", "斯"]);
         assert_eq!(terms("茶"), vec!["茶"]);
-        assert_eq!(terms("東京タワー"), vec!["東", "東京", "京", "京タ", "タ", "タワ", "ワ", "ワー", "ー"]);
+        assert_eq!(
+            terms("東京タワー"),
+            vec!["東", "東京", "京", "京タ", "タ", "タワ", "ワ", "ワー", "ー"]
+        );
         assert_eq!(terms("iPhone手机"), vec!["iphone", "手", "手机", "机"]);
         // Thai marks stay with their letter
         assert_eq!(terms("ที่"), vec!["ที่"]);
@@ -485,7 +692,10 @@ mod tests {
     }
 
     fn conformance_file(name: &str) -> String {
-        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("conformance").join(name);
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("conformance")
+            .join(name);
         std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
     }
 
@@ -501,31 +711,64 @@ mod tests {
     /// conformance/normalization.json: the lines every implementation must reproduce.
     #[test]
     fn normalization_vectors() {
-        let v: serde_json::Value = serde_json::from_str(&conformance_file("normalization.json")).unwrap();
+        let v: serde_json::Value =
+            serde_json::from_str(&conformance_file("normalization.json")).unwrap();
         let strings = |x: &serde_json::Value| -> Vec<String> {
-            x.as_array().unwrap().iter().map(|s| s.as_str().unwrap().to_string()).collect()
+            x.as_array()
+                .unwrap()
+                .iter()
+                .map(|s| s.as_str().unwrap().to_string())
+                .collect()
         };
         for c in v["normalize"].as_array().unwrap() {
             let input = c["input"].as_str().unwrap();
-            assert_eq!(canonical(input), c["canonical"].as_str().unwrap(), "canonical({input:?})");
-            assert_eq!(content_tokens(input), strings(&c["tokens"]), "content_tokens({input:?})");
-            assert_eq!(token_set_key(input), strings(&c["key"]), "token_set_key({input:?})");
+            assert_eq!(
+                canonical(input),
+                c["canonical"].as_str().unwrap(),
+                "canonical({input:?})"
+            );
+            assert_eq!(
+                content_tokens(input),
+                strings(&c["tokens"]),
+                "content_tokens({input:?})"
+            );
+            assert_eq!(
+                token_set_key(input),
+                strings(&c["key"]),
+                "token_set_key({input:?})"
+            );
         }
         for pair in v["same_key"].as_array().unwrap() {
             let (a, b) = (pair[0].as_str().unwrap(), pair[1].as_str().unwrap());
-            assert_eq!(token_set_key(a), token_set_key(b), "{a:?} and {b:?} must match");
+            assert_eq!(
+                token_set_key(a),
+                token_set_key(b),
+                "{a:?} and {b:?} must match"
+            );
         }
         for pair in v["different_key"].as_array().unwrap() {
             let (a, b) = (pair[0].as_str().unwrap(), pair[1].as_str().unwrap());
-            assert_ne!(token_set_key(a), token_set_key(b), "{a:?} and {b:?} must not match");
+            assert_ne!(
+                token_set_key(a),
+                token_set_key(b),
+                "{a:?} and {b:?} must not match"
+            );
         }
         for c in v["search_terms"].as_array().unwrap() {
             let input = c["input"].as_str().unwrap();
-            assert_eq!(search_terms(input), strings(&c["terms"]), "search_terms({input:?})");
+            assert_eq!(
+                search_terms(input),
+                strings(&c["terms"]),
+                "search_terms({input:?})"
+            );
         }
         for pair in v["same_terms"].as_array().unwrap() {
             let (a, b) = (pair[0].as_str().unwrap(), pair[1].as_str().unwrap());
-            assert_eq!(search_terms(a), search_terms(b), "{a:?} and {b:?} must have the same search terms");
+            assert_eq!(
+                search_terms(a),
+                search_terms(b),
+                "{a:?} and {b:?} must have the same search terms"
+            );
         }
         for pair in v["different_terms"].as_array().unwrap() {
             let (a, b) = (pair[0].as_str().unwrap(), pair[1].as_str().unwrap());
@@ -533,7 +776,11 @@ mod tests {
         }
         for c in v["search_fold"].as_array().unwrap() {
             let input = c["input"].as_str().unwrap();
-            assert_eq!(search_fold(input), c["folded"].as_str().unwrap(), "search_fold({input:?})");
+            assert_eq!(
+                search_fold(input),
+                c["folded"].as_str().unwrap(),
+                "search_fold({input:?})"
+            );
         }
         for c in v["matches"].as_array().unwrap() {
             let (query, text) = (c["query"].as_str().unwrap(), c["text"].as_str().unwrap());
@@ -543,7 +790,10 @@ mod tests {
             assert_eq!(got, c["match"].as_bool().unwrap(), "{query:?} in {text:?}");
         }
         for c in v["ids"].as_array().unwrap() {
-            assert_eq!(stable_id(c["input"].as_str().unwrap()), c["id"].as_str().unwrap());
+            assert_eq!(
+                stable_id(c["input"].as_str().unwrap()),
+                c["id"].as_str().unwrap()
+            );
         }
     }
 
@@ -578,6 +828,12 @@ mod tests {
 [[tampoco]]
 ```
                     [[]] vacío, [[sin cerrar";
-        assert_eq!(wikilinks(text), vec!["reiniciar el router".to_string(), "ip de administración".to_string()]);
+        assert_eq!(
+            wikilinks(text),
+            vec![
+                "reiniciar el router".to_string(),
+                "ip de administración".to_string()
+            ]
+        );
     }
 }

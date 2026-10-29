@@ -12,7 +12,17 @@ use serde_json::{json, Map, Value};
 pub const ALIASES: &[(&str, &[&str])] = &[
     ("kind", &["kind", "clase"]),
     ("type", &["type", "tipo"]),
-    ("question", &["question", "pregunta", "q", "canonicalquery", "query", "consulta"]),
+    (
+        "question",
+        &[
+            "question",
+            "pregunta",
+            "q",
+            "canonicalquery",
+            "query",
+            "consulta",
+        ],
+    ),
     ("answer", &["answer", "respuesta", "a", "value", "valor"]),
     ("intent", &["intent", "intencion", "tarea", "task"]),
     ("title", &["title", "titulo", "name", "nombre"]),
@@ -21,22 +31,81 @@ pub const ALIASES: &[(&str, &[&str])] = &[
     ("shell", &["shell", "consola"]),
     ("attrs", &["attrs", "atributos", "attributes"]),
     ("links", &["links", "enlaces", "vinculos"]),
-    ("collection", &["collection", "coleccion", "category", "categoria"]),
+    (
+        "collection",
+        &["collection", "coleccion", "category", "categoria"],
+    ),
     ("source", &["source", "fuente", "origen"]),
     ("verified_by", &["verifiedby", "verificadopor"]),
-    ("last_verified", &["lastverified", "fecha", "date", "fechaverificacion", "fechadeverificacion"]),
+    (
+        "last_verified",
+        &[
+            "lastverified",
+            "fecha",
+            "date",
+            "fechaverificacion",
+            "fechadeverificacion",
+        ],
+    ),
 ];
 
 /// The fields each kind of row may carry. Anything else in a row is dropped,
 /// so a stray column never lands inside a procedure's body.
 pub const FIELDS: &[(&str, &[&str])] = &[
-    ("fact", &["question", "answer", "type", "attrs", "links", "collection", "source", "verified_by", "last_verified"]),
-    ("procedure", &["intent", "title", "steps", "command", "shell", "type", "attrs", "links", "collection", "source", "verified_by", "last_verified"]),
-    ("context", &["title", "answer", "links", "collection", "source", "verified_by", "last_verified"]),
+    (
+        "fact",
+        &[
+            "question",
+            "answer",
+            "type",
+            "attrs",
+            "links",
+            "collection",
+            "source",
+            "verified_by",
+            "last_verified",
+        ],
+    ),
+    (
+        "procedure",
+        &[
+            "intent",
+            "title",
+            "steps",
+            "command",
+            "shell",
+            "type",
+            "attrs",
+            "links",
+            "collection",
+            "source",
+            "verified_by",
+            "last_verified",
+        ],
+    ),
+    (
+        "context",
+        &[
+            "title",
+            "answer",
+            "links",
+            "collection",
+            "source",
+            "verified_by",
+            "last_verified",
+        ],
+    ),
 ];
 
 /// Values that make a column called "tipo" or "type" the kind, not the free type.
-pub const KIND_WORDS: &[&str] = &["fact", "hecho", "procedure", "procedimiento", "context", "contexto"];
+pub const KIND_WORDS: &[&str] = &[
+    "fact",
+    "hecho",
+    "procedure",
+    "procedimiento",
+    "context",
+    "contexto",
+];
 
 /// What the manager is handed: the same three tables, as JSON.
 pub fn client_json() -> String {
@@ -77,8 +146,9 @@ pub fn decode(bytes: &[u8]) -> (String, &'static str) {
 
 fn cp1252(b: u8) -> char {
     const HIGH: [char; 32] = [
-        '€', '\u{81}', '‚', 'ƒ', '„', '…', '†', '‡', 'ˆ', '‰', 'Š', '‹', 'Œ', '\u{8d}', 'Ž', '\u{8f}',
-        '\u{90}', '‘', '’', '“', '”', '•', '–', '—', '˜', '™', 'š', '›', 'œ', '\u{9d}', 'ž', 'Ÿ',
+        '€', '\u{81}', '‚', 'ƒ', '„', '…', '†', '‡', 'ˆ', '‰', 'Š', '‹', 'Œ', '\u{8d}', 'Ž',
+        '\u{8f}', '\u{90}', '‘', '’', '“', '”', '•', '–', '—', '˜', '™', 'š', '›', 'œ', '\u{9d}',
+        'ž', 'Ÿ',
     ];
     match b {
         0x80..=0x9F => HIGH[(b - 0x80) as usize],
@@ -102,7 +172,10 @@ pub fn detect_delimiter(text: &str) -> char {
         }
         n
     };
-    [',', ';', '\t', '|'].into_iter().max_by_key(|&d| count(d)).unwrap_or(',')
+    [',', ';', '\t', '|']
+        .into_iter()
+        .max_by_key(|&d| count(d))
+        .unwrap_or(',')
 }
 
 /// RFC 4180: quoted cells may hold the delimiter, doubled quotes and line
@@ -159,8 +232,17 @@ pub fn map_columns(headers: &[String], rows: &[Vec<String>]) -> Vec<(String, usi
     if !has("kind") {
         if let Some(pos) = out.iter().position(|(k, _)| k == "type") {
             let col = out[pos].1;
-            let vals: Vec<String> = rows.iter().take(50).filter_map(|r| r.get(col)).map(|v| norm(v)).filter(|v| !v.is_empty()).collect();
-            let kindish = vals.iter().filter(|v| KIND_WORDS.contains(&v.as_str())).count();
+            let vals: Vec<String> = rows
+                .iter()
+                .take(50)
+                .filter_map(|r| r.get(col))
+                .map(|v| norm(v))
+                .filter(|v| !v.is_empty())
+                .collect();
+            let kindish = vals
+                .iter()
+                .filter(|v| KIND_WORDS.contains(&v.as_str()))
+                .count();
             if !vals.is_empty() && kindish * 5 >= vals.len() * 4 {
                 out[pos].0 = "kind".into();
             }
@@ -181,12 +263,20 @@ fn row_kind(raw: &str) -> String {
 /// Import rows from a table. `default_kind` applies when there is no kind
 /// column: an explicit choice, or, left out, `procedure` for a table with an
 /// intent, steps or command and no answer, else `fact`.
-pub fn rows_from_table(headers: &[String], rows: &[Vec<String>], default_kind: Option<&str>) -> Vec<Value> {
+pub fn rows_from_table(
+    headers: &[String],
+    rows: &[Vec<String>],
+    default_kind: Option<&str>,
+) -> Vec<Value> {
     let cols = map_columns(headers, rows);
     let col = |f: &str| cols.iter().find(|(k, _)| k == f).map(|(_, i)| *i);
     let inferred = default_kind.map(str::to_string).unwrap_or_else(|| {
         let procish = col("intent").is_some() || col("steps").is_some() || col("command").is_some();
-        if procish && col("answer").is_none() { "procedure".into() } else { "fact".into() }
+        if procish && col("answer").is_none() {
+            "procedure".into()
+        } else {
+            "fact".into()
+        }
     });
     rows.iter()
         .map(|r| {
@@ -200,9 +290,19 @@ pub fn rows_from_table(headers: &[String], rows: &[Vec<String>], default_kind: O
                 .iter()
                 .find(|(k, _)| *k == kind)
                 .map(|(_, f)| f.to_vec())
-                .unwrap_or_else(|| ALIASES.iter().map(|(f, _)| *f).filter(|f| *f != "kind").collect());
+                .unwrap_or_else(|| {
+                    ALIASES
+                        .iter()
+                        .map(|(f, _)| *f)
+                        .filter(|f| *f != "kind")
+                        .collect()
+                });
             for f in allowed {
-                if let Some(v) = col(f).and_then(|i| r.get(i)).map(|v| v.trim()).filter(|v| !v.is_empty()) {
+                if let Some(v) = col(f)
+                    .and_then(|i| r.get(i))
+                    .map(|v| v.trim())
+                    .filter(|v| !v.is_empty())
+                {
                     o.insert(f.into(), json!(v));
                 }
             }
@@ -253,24 +353,40 @@ mod tests {
         let table = parse_csv(&decoded, ';');
         assert_eq!(table.len(), 2, "the empty row is dropped");
         let rows = rows_from_table(&table[0], &table[1..], None);
-        assert_eq!(rows[0], json!({"kind": "fact", "question": "¿Pin 4 del NE555?", "answer": "RESET; activo en bajo", "collection": "electrónica"}));
+        assert_eq!(
+            rows[0],
+            json!({"kind": "fact", "question": "¿Pin 4 del NE555?", "answer": "RESET; activo en bajo", "collection": "electrónica"})
+        );
     }
 
     #[test]
     fn a_tipo_column_is_the_kind_only_when_it_holds_kinds() {
-        let h = vec!["Tipo".to_string(), "Pregunta".to_string(), "Respuesta".to_string()];
+        let h = vec![
+            "Tipo".to_string(),
+            "Pregunta".to_string(),
+            "Respuesta".to_string(),
+        ];
         let kinds = vec![vec!["hecho".into(), "q".into(), "a".into()]];
         assert_eq!(rows_from_table(&h, &kinds, None)[0]["kind"], "fact");
         let free = vec![vec!["network".into(), "q".into(), "a".into()]];
         let r = &rows_from_table(&h, &free, None)[0];
-        assert_eq!((r["kind"].as_str(), r["type"].as_str()), (Some("fact"), Some("network")));
+        assert_eq!(
+            (r["kind"].as_str(), r["type"].as_str()),
+            (Some("fact"), Some("network"))
+        );
     }
 
     #[test]
     fn stray_columns_never_reach_a_procedure_and_formulas_are_unguarded() {
-        let t = parse_csv("intent,command,answer,note\nflush dns,ipconfig /flushdns,oops,x\nvolts,'-5 V,,\n", ',');
+        let t = parse_csv(
+            "intent,command,answer,note\nflush dns,ipconfig /flushdns,oops,x\nvolts,'-5 V,,\n",
+            ',',
+        );
         let rows = rows_from_table(&t[0], &t[1..], Some("procedure"));
-        assert_eq!(rows[0], json!({"kind": "procedure", "intent": "flush dns", "command": "ipconfig /flushdns"}));
+        assert_eq!(
+            rows[0],
+            json!({"kind": "procedure", "intent": "flush dns", "command": "ipconfig /flushdns"})
+        );
         assert_eq!(rows[1]["command"], "-5 V");
     }
 }

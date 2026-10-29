@@ -60,17 +60,24 @@ pub struct Manifest {
 pub fn valid_name(name: &str) -> bool {
     !name.is_empty()
         && name.len() <= 40
-        && name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-' || c == '_')
+        && name
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-' || c == '_')
 }
 
 impl Manifest {
     pub fn new(path: &Path) -> Self {
-        Manifest { sectors: Vec::new(), default: None, dir: folder(path) }
+        Manifest {
+            sectors: Vec::new(),
+            default: None,
+            dir: folder(path),
+        }
     }
 
     pub fn load(path: &Path) -> Result<Self, String> {
         let text = std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
-        let mut m: Manifest = serde_json::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))?;
+        let mut m: Manifest =
+            serde_json::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))?;
         m.dir = folder(path);
         m.check()?;
         Ok(m)
@@ -88,7 +95,10 @@ impl Manifest {
         let mut seen = std::collections::HashSet::new();
         for s in &self.sectors {
             if !valid_name(&s.name) {
-                return Err(format!("sector name `{}`: use lowercase letters, digits, `-` or `_`, up to 40", s.name));
+                return Err(format!(
+                    "sector name `{}`: use lowercase letters, digits, `-` or `_`, up to 40",
+                    s.name
+                ));
             }
             if !seen.insert(s.name.as_str()) {
                 return Err(format!("sector `{}` is declared twice", s.name));
@@ -100,7 +110,10 @@ impl Manifest {
                     return Err(format!("sector `{}` lists itself in `reads`", s.name));
                 }
                 if !seen.contains(r.as_str()) {
-                    return Err(format!("sector `{}` reads `{r}`, which is not declared", s.name));
+                    return Err(format!(
+                        "sector `{}` reads `{r}`, which is not declared",
+                        s.name
+                    ));
                 }
             }
         }
@@ -123,18 +136,25 @@ impl Manifest {
     pub fn agent_for_key(&self, key: &str) -> Option<&SectorDef> {
         let digest = key_hash(key);
         self.sectors.iter().find(|s| {
-            s.key_sha256.as_deref().map_or(false, |k| constant_time_eq(k.as_bytes(), digest.as_bytes()))
+            s.key_sha256
+                .as_deref()
+                .map_or(false, |k| constant_time_eq(k.as_bytes(), digest.as_bytes()))
         })
     }
 
     /// What an agent sector sees: itself first, then what it reads.
     pub fn view_of(&self, agent: &SectorDef) -> Vec<String> {
-        std::iter::once(agent.name.clone()).chain(agent.reads.iter().cloned()).collect()
+        std::iter::once(agent.name.clone())
+            .chain(agent.reads.iter().cloned())
+            .collect()
     }
 }
 
 fn folder(path: &Path) -> PathBuf {
-    path.parent().filter(|p| !p.as_os_str().is_empty()).map(Path::to_path_buf).unwrap_or_else(|| PathBuf::from("."))
+    path.parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| PathBuf::from("."))
 }
 
 /// A fresh agent key: `fdsk_` and 32 hex digits from the OS's RNG-seeded hasher.
@@ -143,7 +163,10 @@ pub fn new_key() -> String {
 }
 
 pub fn key_hash(key: &str) -> String {
-    Sha256::digest(key.trim().as_bytes()).iter().map(|b| format!("{b:02x}")).collect()
+    Sha256::digest(key.trim().as_bytes())
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
@@ -162,7 +185,13 @@ pub struct View<'a> {
 /// by turns, one per sector at a time -- best sector first, the agent's own on
 /// a tie -- because scores are not comparable across files: each has its own
 /// word statistics. Links resolve inside their own sector.
-pub async fn query(views: &[View<'_>], text: &str, scope: &Scope<'_>, budget: u32, links: bool) -> QueryResult {
+pub async fn query(
+    views: &[View<'_>],
+    text: &str,
+    scope: &Scope<'_>,
+    budget: u32,
+    links: bool,
+) -> QueryResult {
     let mut vectors: HashMap<String, Option<Vec<f32>>> = HashMap::new();
     let mut per = Vec::with_capacity(views.len());
     for (order, v) in views.iter().enumerate() {
@@ -204,8 +233,14 @@ fn merge(mut per: Vec<(usize, QueryResult)>, text: &str, budget: u32) -> QueryRe
         return per.pop().map(|(_, r)| r).unwrap();
     }
     per.sort_by_key(|(order, r)| (rank(r.confidence), *order));
-    let confidence = per.first().map(|(_, r)| r.confidence).unwrap_or(Confidence::None);
-    let mut queues: Vec<VecDeque<_>> = per.into_iter().map(|(_, r)| VecDeque::from(r.records)).collect();
+    let confidence = per
+        .first()
+        .map(|(_, r)| r.confidence)
+        .unwrap_or(Confidence::None);
+    let mut queues: Vec<VecDeque<_>> = per
+        .into_iter()
+        .map(|(_, r)| VecDeque::from(r.records))
+        .collect();
     let (mut records, mut used) = (Vec::new(), 0u32);
     'fill: loop {
         let mut took = false;
@@ -223,7 +258,13 @@ fn merge(mut per: Vec<(usize, QueryResult)>, text: &str, budget: u32) -> QueryRe
             break;
         }
     }
-    QueryResult { query: text.to_string(), confidence, records, used_tokens: used, budget }
+    QueryResult {
+        query: text.to_string(),
+        confidence,
+        records,
+        used_tokens: used,
+        budget,
+    }
 }
 
 #[cfg(test)]
@@ -234,7 +275,8 @@ mod tests {
     fn engine_with(facts: &[(&str, &str)]) -> Engine {
         let mut records = Vec::new();
         for (q, a) in facts {
-            crate::ops::upsert_fact(&mut records, q, a, "default", "test", "human", "2026-10-12").unwrap();
+            crate::ops::upsert_fact(&mut records, q, a, "default", "test", "human", "2026-10-12")
+                .unwrap();
         }
         Engine::new(DbMeta::default(), records)
     }
@@ -242,11 +284,29 @@ mod tests {
     #[test]
     fn names_are_checked_and_reads_must_exist() {
         let mut m = Manifest::new(Path::new("sectors.json"));
-        m.sectors.push(SectorDef { name: "sales".into(), file: "sales.fds".into(), reads: vec!["shared".into()], key_sha256: None, clearance: vec![] });
+        m.sectors.push(SectorDef {
+            name: "sales".into(),
+            file: "sales.fds".into(),
+            reads: vec!["shared".into()],
+            key_sha256: None,
+            clearance: vec![],
+        });
         assert!(m.check().is_err(), "reads a sector that does not exist");
-        m.sectors.push(SectorDef { name: "shared".into(), file: "shared.fds".into(), reads: vec![], key_sha256: None, clearance: vec![] });
+        m.sectors.push(SectorDef {
+            name: "shared".into(),
+            file: "shared.fds".into(),
+            reads: vec![],
+            key_sha256: None,
+            clearance: vec![],
+        });
         assert!(m.check().is_ok());
-        m.sectors.push(SectorDef { name: "Bad Name".into(), file: "x.fds".into(), reads: vec![], key_sha256: None, clearance: vec![] });
+        m.sectors.push(SectorDef {
+            name: "Bad Name".into(),
+            file: "x.fds".into(),
+            reads: vec![],
+            key_sha256: None,
+            clearance: vec![],
+        });
         assert!(m.check().is_err());
     }
 
@@ -254,8 +314,20 @@ mod tests {
     fn a_key_opens_only_its_own_sector() {
         let mut m = Manifest::new(Path::new("sectors.json"));
         let (ka, kb) = (new_key(), new_key());
-        m.sectors.push(SectorDef { name: "a".into(), file: "a.fds".into(), reads: vec![], key_sha256: Some(key_hash(&ka)), clearance: vec![] });
-        m.sectors.push(SectorDef { name: "b".into(), file: "b.fds".into(), reads: vec![], key_sha256: Some(key_hash(&kb)), clearance: vec![] });
+        m.sectors.push(SectorDef {
+            name: "a".into(),
+            file: "a.fds".into(),
+            reads: vec![],
+            key_sha256: Some(key_hash(&ka)),
+            clearance: vec![],
+        });
+        m.sectors.push(SectorDef {
+            name: "b".into(),
+            file: "b.fds".into(),
+            reads: vec![],
+            key_sha256: Some(key_hash(&kb)),
+            clearance: vec![],
+        });
         assert_eq!(m.agent_for_key(&ka).unwrap().name, "a");
         assert_eq!(m.agent_for_key(&kb).unwrap().name, "b");
         assert!(m.agent_for_key("fdsk_guess").is_none());
@@ -265,9 +337,24 @@ mod tests {
     #[tokio::test]
     async fn the_best_sector_answers_first_and_each_record_says_where_it_lives() {
         let own = engine_with(&[("my note", "kept by the agent")]);
-        let shared = engine_with(&[("office wifi password", "ask reception"), ("printer on floor two", "HP 404")]);
-        let views = [View { name: "sales", engine: &own }, View { name: "shared", engine: &shared }];
-        let scope = Scope { collection: None, verified_by: &[] };
+        let shared = engine_with(&[
+            ("office wifi password", "ask reception"),
+            ("printer on floor two", "HP 404"),
+        ]);
+        let views = [
+            View {
+                name: "sales",
+                engine: &own,
+            },
+            View {
+                name: "shared",
+                engine: &shared,
+            },
+        ];
+        let scope = Scope {
+            collection: None,
+            verified_by: &[],
+        };
         let r = query(&views, "office wifi password", &scope, 400, false).await;
         assert_eq!(r.confidence, Confidence::Exact);
         assert_eq!(r.records[0].sector.as_deref(), Some("shared"));

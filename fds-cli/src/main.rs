@@ -6,14 +6,14 @@ mod etl;
 mod guard;
 mod ingest;
 mod journal;
-mod media;
 mod mcp;
+mod media;
 mod ollama;
 mod ops;
 mod policy;
 mod query;
-mod sensitive;
 mod sectors;
+mod sensitive;
 mod serve;
 mod status;
 mod tabular;
@@ -32,7 +32,11 @@ use crate::query::{Confidence, Engine, DEFAULT_BUDGET};
 use crate::text::{now, today};
 
 #[derive(Parser)]
-#[command(name = "fds", version, about = "FDS (Focused Model Data Store): a database for knowledge that AI systems consume")]
+#[command(
+    name = "fds",
+    version,
+    about = "FDS (Focused Model Data Store): a database for knowledge that AI systems consume"
+)]
 struct Cli {
     /// Database file (default: the single *.fds file in this directory)
     #[arg(long, global = true, value_name = "FILE")]
@@ -496,12 +500,20 @@ async fn run(cli: Cli) -> Result<u8, String> {
     let json_out = cli.json;
 
     if let Command::Init { name } = &cli.command {
-        let path = cli.db.clone().unwrap_or_else(|| PathBuf::from(format!("{name}.fds")));
+        let path = cli
+            .db
+            .clone()
+            .unwrap_or_else(|| PathBuf::from(format!("{name}.fds")));
         if path.exists() {
             return Err(format!("{} already exists.", path.display()));
         }
         let date = today();
-        let mut meta = DbMeta { name: name.clone(), created: date.clone(), updated: date, ..Default::default() };
+        let mut meta = DbMeta {
+            name: name.clone(),
+            created: date.clone(),
+            updated: date,
+            ..Default::default()
+        };
         db::save(&path, &mut meta, &[])?;
         eprintln!("Created empty FDS database {}", path.display());
         return Ok(0);
@@ -511,32 +523,84 @@ async fn run(cli: Cli) -> Result<u8, String> {
     match &cli.command {
         Command::Sector(cmd) => return sector_cmd(cmd, json_out),
         Command::Journal(cmd) => return journal_cmd(cmd, cli.db.as_deref(), json_out),
-        Command::Guard { policies, agent, audit, command } => {
-            let agent = agent.clone().or_else(|| std::env::var("FDS_AGENT").ok()).filter(|a| !a.trim().is_empty()).unwrap_or_else(|| "unknown".into());
+        Command::Guard {
+            policies,
+            agent,
+            audit,
+            command,
+        } => {
+            let agent = agent
+                .clone()
+                .or_else(|| std::env::var("FDS_AGENT").ok())
+                .filter(|a| !a.trim().is_empty())
+                .unwrap_or_else(|| "unknown".into());
             let audit = audit.clone().unwrap_or_else(|| audit::beside(policies));
-            return guard::run(guard::Config { manifest: policies.clone(), agent, audit, command: command.clone() }).await;
+            return guard::run(guard::Config {
+                manifest: policies.clone(),
+                agent,
+                audit,
+                command: command.clone(),
+            })
+            .await;
         }
         Command::Audit(cmd) => return audit_cmd(cmd, json_out),
-        Command::Check { subject, action, value, sectors, default } => {
-            return check_cmd(subject, action, value.as_deref(), sectors.as_deref(), default.as_deref(), cli.db.as_deref(), json_out);
+        Command::Check {
+            subject,
+            action,
+            value,
+            sectors,
+            default,
+        } => {
+            return check_cmd(
+                subject,
+                action,
+                value.as_deref(),
+                sectors.as_deref(),
+                default.as_deref(),
+                cli.db.as_deref(),
+                json_out,
+            );
         }
-        Command::Serve { port, open, sectors: Some(manifest), .. } => {
+        Command::Serve {
+            port,
+            open,
+            sectors: Some(manifest),
+            ..
+        } => {
             serve::run_sectors(manifest.clone(), *port, *open).await?;
             return Ok(0);
         }
-        Command::Mcp { connect: Some(url), .. } => {
+        Command::Mcp {
+            connect: Some(url), ..
+        } => {
             mcp::connect(url).await?;
             return Ok(0);
         }
-        Command::Mcp { sectors: Some(manifest), agent, .. } => {
+        Command::Mcp {
+            sectors: Some(manifest),
+            agent,
+            ..
+        } => {
             let m = sectors::Manifest::load(manifest)?;
-            let name = agent.as_deref().ok_or("--sectors needs --as <sector>: which agent this is")?;
-            let def = m.get(name).ok_or(format!("no sector `{name}` in {}", manifest.display()))?;
+            let name = agent
+                .as_deref()
+                .ok_or("--sectors needs --as <sector>: which agent this is")?;
+            let def = m
+                .get(name)
+                .ok_or(format!("no sector `{name}` in {}", manifest.display()))?;
             if def.key_sha256.is_none() {
                 return Err(format!("`{name}` is not an agent sector; make one with `fds sector new <name> --agent`"));
             }
-            let files = m.view_of(def).into_iter().filter_map(|n| m.get(&n).map(|d| (n, m.path_of(d)))).collect();
-            let memory = mcp::Memory { path: m.path_of(def), sector: name.to_string(), writer: format!("model:{name}") };
+            let files = m
+                .view_of(def)
+                .into_iter()
+                .filter_map(|n| m.get(&n).map(|d| (n, m.path_of(d))))
+                .collect();
+            let memory = mcp::Memory {
+                path: m.path_of(def),
+                sector: name.to_string(),
+                writer: format!("model:{name}"),
+            };
             mcp::run(files, Some(memory), def.clearance.clone()).await?;
             return Ok(0);
         }
@@ -551,10 +615,19 @@ async fn run(cli: Cli) -> Result<u8, String> {
         Command::Status => {
             let (meta, records) = db::load(&path)?;
             let s = status::summary(&path, &meta, &records);
-            if json_out { print_json(&s) } else { status::print_summary(&s) }
+            if json_out {
+                print_json(&s)
+            } else {
+                status::print_summary(&s)
+            }
         }
 
-        Command::Add { paths, collection, vision_model, lang } => {
+        Command::Add {
+            paths,
+            collection,
+            vision_model,
+            lang,
+        } => {
             let _lock = db::lock(&path)?;
             let (mut meta, mut records) = db::load(&path)?;
             let db_abs = path.canonicalize().ok();
@@ -565,10 +638,14 @@ async fn run(cli: Cli) -> Result<u8, String> {
                 if file.canonicalize().ok() == db_abs {
                     continue; // never ingest the database into itself
                 }
-                let ext = file.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
+                let ext = file
+                    .extension()
+                    .map(|e| e.to_string_lossy().to_lowercase())
+                    .unwrap_or_default();
                 if let Some(media_type) = media::media_type(&ext) {
                     use base64::Engine as _;
-                    let bytes = std::fs::read(&file).map_err(|e| format!("{}: {e}", file.display()))?;
+                    let bytes =
+                        std::fs::read(&file).map_err(|e| format!("{}: {e}", file.display()))?;
                     images.push(etl::Document {
                         name: ingest::source_name(&file),
                         text: String::new(),
@@ -581,7 +658,8 @@ async fn run(cli: Cli) -> Result<u8, String> {
                 match ingest::fragments(&file) {
                     Some(frags) if !frags.is_empty() => {
                         let source = ingest::source_name(&file);
-                        report.fragments += ingest::upsert(&mut records, &source, &collection, frags);
+                        report.fragments +=
+                            ingest::upsert(&mut records, &source, &collection, frags);
                         report.files += 1;
                     }
                     _ => report.skipped += 1,
@@ -605,8 +683,14 @@ async fn run(cli: Cli) -> Result<u8, String> {
                 .await;
                 for d in &plan.documents {
                     match d.status {
-                        etl::Status::Error => eprintln!("  ✗ {}: {}", d.name, d.message.as_deref().unwrap_or("error")),
-                        etl::Status::Unchanged => eprintln!("  = {} (unchanged, not described again)", d.name),
+                        etl::Status::Error => eprintln!(
+                            "  ✗ {}: {}",
+                            d.name,
+                            d.message.as_deref().unwrap_or("error")
+                        ),
+                        etl::Status::Unchanged => {
+                            eprintln!("  = {} (unchanged, not described again)", d.name)
+                        }
                         _ => {
                             described += 1;
                             eprintln!("  ✓ {}", d.name)
@@ -622,8 +706,17 @@ async fn run(cli: Cli) -> Result<u8, String> {
             warn_missing_embeddings(&meta, &records);
         }
 
-        Command::Import { file, collection, kind, dry_run, skip_errors } => {
-            let ext = file.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
+        Command::Import {
+            file,
+            collection,
+            kind,
+            dry_run,
+            skip_errors,
+        } => {
+            let ext = file
+                .extension()
+                .map(|e| e.to_string_lossy().to_lowercase())
+                .unwrap_or_default();
             let bytes = std::fs::read(&file).map_err(|e| format!("{}: {e}", file.display()))?;
             let (text, encoding) = tabular::decode(&bytes);
             let rows = match ext.as_str() {
@@ -655,13 +748,20 @@ async fn run(cli: Cli) -> Result<u8, String> {
             let (mut meta, mut records) = db::load(&path)?;
             let req = etl::ImportRequest {
                 dry_run,
-                on_error: if skip_errors { etl::OnError::Skip } else { etl::OnError::Abort },
+                on_error: if skip_errors {
+                    etl::OnError::Skip
+                } else {
+                    etl::OnError::Abort
+                },
                 collection: Some(collection),
                 source: Some(ingest::source_name(&file)),
                 rows,
                 ..Default::default()
             };
-            let plan = etl::run_async(req, &mut records, |_bytes, _prompt| async { Err::<String, _>("no images in a table".into()) }).await;
+            let plan = etl::run_async(req, &mut records, |_bytes, _prompt| async {
+                Err::<String, _>("no images in a table".into())
+            })
+            .await;
             if plan.written {
                 db::save(&path, &mut meta, &records)?;
             }
@@ -678,12 +778,29 @@ async fn run(cli: Cli) -> Result<u8, String> {
             }
         }
 
-        Command::Fact(FactCmd::Add { question, answer, collection, source }) => {
+        Command::Fact(FactCmd::Add {
+            question,
+            answer,
+            collection,
+            source,
+        }) => {
             let _lock = db::lock(&path)?;
             let (mut meta, mut records) = db::load(&path)?;
-            let id = upsert_fact(&mut records, &question, &answer, &collection, &source, "human", &today())?;
+            let id = upsert_fact(
+                &mut records,
+                &question,
+                &answer,
+                &collection,
+                &source,
+                "human",
+                &today(),
+            )?;
             db::save(&path, &mut meta, &records)?;
-            if json_out { print_json(&json!({"id": id})) } else { println!("{id}") }
+            if json_out {
+                print_json(&json!({"id": id}))
+            } else {
+                println!("{id}")
+            }
             warn_missing_embeddings(&meta, &records);
         }
 
@@ -701,14 +818,25 @@ async fn run(cli: Cli) -> Result<u8, String> {
             let (mut meta, mut records) = db::load(&path)?;
             let ids = add_procedures(&file, &mut records, &collection)?;
             db::save(&path, &mut meta, &records)?;
-            if json_out { print_json(&json!({"ids": ids})) } else { ids.iter().for_each(|id| println!("{id}")) }
+            if json_out {
+                print_json(&json!({"ids": ids}))
+            } else {
+                ids.iter().for_each(|id| println!("{id}"))
+            }
             warn_missing_embeddings(&meta, &records);
         }
 
-        Command::Ls { kind, rtype, collection } => {
+        Command::Ls {
+            kind,
+            rtype,
+            collection,
+        } => {
             let (_, records) = db::load(&path)?;
             let kind = match kind.as_deref() {
-                Some(k) => Some(Kind::parse(k).ok_or(format!("unknown kind `{k}` (fact, procedure, knowledge)"))?),
+                Some(k) => Some(
+                    Kind::parse(k)
+                        .ok_or(format!("unknown kind `{k}` (fact, procedure, knowledge)"))?,
+                ),
                 None => None,
             };
             let rows: Vec<&Record> = records
@@ -727,7 +855,11 @@ async fn run(cli: Cli) -> Result<u8, String> {
         Command::Show { id } => {
             let (_, records) = db::load(&path)?;
             let i = db::resolve_id(&records, &id)?;
-            if json_out { print_json(&record_json(&records[i])) } else { status::print_record(&records[i]) }
+            if json_out {
+                print_json(&record_json(&records[i]))
+            } else {
+                status::print_record(&records[i])
+            }
         }
 
         Command::Rm { id, source } => {
@@ -744,7 +876,8 @@ async fn run(cli: Cli) -> Result<u8, String> {
                     // forward slashes; accept the path however it is typed.
                     let stored = ingest::source_name(std::path::Path::new(&src));
                     let slashed = src.replace('\\', "/");
-                    records.retain(|r| r.source != src && r.source != stored && r.source != slashed);
+                    records
+                        .retain(|r| r.source != src && r.source != stored && r.source != slashed);
                     if records.len() == before {
                         return Err(format!(
                             "no record has source `{src}`. Sources are stored like `{stored}`; `fds ls` shows them."
@@ -761,31 +894,54 @@ async fn run(cli: Cli) -> Result<u8, String> {
         Command::Embed { model, all } => {
             let _lock = db::lock(&path)?;
             let (mut meta, mut records) = db::load(&path)?;
-            eprintln!("Embedding with `{}`…", model.as_deref().unwrap_or(if meta.embedding_model.is_empty() { ops::DEFAULT_EMBED_MODEL } else { &meta.embedding_model }));
+            eprintln!(
+                "Embedding with `{}`…",
+                model
+                    .as_deref()
+                    .unwrap_or(if meta.embedding_model.is_empty() {
+                        ops::DEFAULT_EMBED_MODEL
+                    } else {
+                        &meta.embedding_model
+                    })
+            );
             let n = ops::embed(&mut meta, &mut records, model, all).await?;
             if n == 0 {
                 eprintln!("All records already have embeddings.");
                 return Ok(0);
             }
             db::save(&path, &mut meta, &records)?;
-            eprintln!("Done. {} records now have embeddings.", records.iter().filter(|r| r.embedding.is_some()).count());
+            eprintln!(
+                "Done. {} records now have embeddings.",
+                records.iter().filter(|r| r.embedding.is_some()).count()
+            );
         }
 
-        Command::Query { text, collection, budget, links, verified_by } => {
+        Command::Query {
+            text,
+            collection,
+            budget,
+            links,
+            verified_by,
+        } => {
             let q = text.join(" ");
             let (meta, records) = db::load(&path)?;
             let engine = Engine::new(meta, records);
             let emb = if engine.has_embeddings() {
                 let e = ollama::embed_query(&engine.meta.embedding_model, &q).await;
                 if e.is_none() {
-                    eprintln!("fds: embeddings unavailable (is Ollama running?); using full-text only.");
+                    eprintln!(
+                        "fds: embeddings unavailable (is Ollama running?); using full-text only."
+                    );
                 }
                 e
             } else {
                 None
             };
             let verified = query::verified_list(verified_by.as_deref());
-            let scope = query::Scope { collection: collection.as_deref(), verified_by: &verified };
+            let scope = query::Scope {
+                collection: collection.as_deref(),
+                verified_by: &verified,
+            };
             let mut result = engine.query_scoped(&q, &scope, budget, emb.as_deref());
             if links {
                 engine.expand_links(&mut result, &scope);
@@ -803,7 +959,11 @@ async fn run(cli: Cli) -> Result<u8, String> {
         Command::Context(ContextCmd::Ls) => {
             let (meta, records) = db::load(&path)?;
             let engine = Engine::new(meta, records);
-            let list: Vec<_> = engine.contexts().into_iter().map(|i| engine.context(i)).collect();
+            let list: Vec<_> = engine
+                .contexts()
+                .into_iter()
+                .map(|i| engine.context(i))
+                .collect();
             if json_out {
                 print_json(&json!(list
                     .iter()
@@ -814,7 +974,14 @@ async fn run(cli: Cli) -> Result<u8, String> {
                 println!("(no contexts)");
             } else {
                 for b in &list {
-                    println!("{}  {:<28} {:>3} records  {:>5} tokens  {}", &b.id[..8], b.name, b.records.len(), b.tokens, b.hash);
+                    println!(
+                        "{}  {:<28} {:>3} records  {:>5} tokens  {}",
+                        &b.id[..8],
+                        b.name,
+                        b.records.len(),
+                        b.tokens,
+                        b.hash
+                    );
                 }
             }
         }
@@ -822,11 +989,15 @@ async fn run(cli: Cli) -> Result<u8, String> {
         Command::Context(ContextCmd::Show { name, known }) => {
             let (meta, records) = db::load(&path)?;
             let engine = Engine::new(meta, records);
-            let i = engine.find_context(&name).ok_or(format!("no context named `{name}`; `fds context ls` lists them"))?;
+            let i = engine.find_context(&name).ok_or(format!(
+                "no context named `{name}`; `fds context ls` lists them"
+            ))?;
             let b = engine.context(i);
             if known.as_deref() == Some(b.hash.as_str()) {
                 if json_out {
-                    print_json(&json!({"name": b.name, "hash": b.hash, "tokens": b.tokens, "changed": false}));
+                    print_json(
+                        &json!({"name": b.name, "hash": b.hash, "tokens": b.tokens, "changed": false}),
+                    );
                 } else {
                     println!("unchanged  {}  {}", b.name, b.hash);
                 }
@@ -839,27 +1010,57 @@ async fn run(cli: Cli) -> Result<u8, String> {
             }
         }
 
-        Command::Context(ContextCmd::Set { name, instructions, file, links, collection }) => {
+        Command::Context(ContextCmd::Set {
+            name,
+            instructions,
+            file,
+            links,
+            collection,
+        }) => {
             let text = match (instructions, file) {
                 (Some(t), _) => t,
-                (None, Some(f)) => std::fs::read_to_string(&f).map_err(|e| format!("{}: {e}", f.display()))?,
+                (None, Some(f)) => {
+                    std::fs::read_to_string(&f).map_err(|e| format!("{}: {e}", f.display()))?
+                }
                 (None, None) => String::new(),
             };
             let _lock = db::lock(&path)?;
             let (mut meta, mut records) = db::load(&path)?;
-            let r = ops::context_record(&name, &text, &links, &collection, "cli", "human", &today())?;
+            let r =
+                ops::context_record(&name, &text, &links, &collection, "cli", "human", &today())?;
             let id = ops::upsert(&mut records, r);
             db::save(&path, &mut meta, &records)?;
-            if json_out { print_json(&json!({"id": id})) } else { println!("{id}") }
+            if json_out {
+                print_json(&json!({"id": id}))
+            } else {
+                println!("{id}")
+            }
         }
 
-        Command::Context(ContextCmd::Import { file, name, collection }) => {
-            let text = std::fs::read_to_string(&file).map_err(|e| format!("{}: {e}", file.display()))?;
-            let name = name.unwrap_or_else(|| file.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| "instructions".into()));
+        Command::Context(ContextCmd::Import {
+            file,
+            name,
+            collection,
+        }) => {
+            let text =
+                std::fs::read_to_string(&file).map_err(|e| format!("{}: {e}", file.display()))?;
+            let name = name.unwrap_or_else(|| {
+                file.file_stem()
+                    .map(|s| s.to_string_lossy().to_string())
+                    .unwrap_or_else(|| "instructions".into())
+            });
             let _lock = db::lock(&path)?;
             let (mut meta, mut records) = db::load(&path)?;
             // The file's own `[[links]]` become the context's members, as with `context set`.
-            let r = ops::context_record(&name, &text, &[], &collection, &ingest::source_name(&file), "human", &today())?;
+            let r = ops::context_record(
+                &name,
+                &text,
+                &[],
+                &collection,
+                &ingest::source_name(&file),
+                "human",
+                &today(),
+            )?;
             let id = ops::upsert(&mut records, r);
             db::save(&path, &mut meta, &records)?;
             if json_out {
@@ -872,7 +1073,9 @@ async fn run(cli: Cli) -> Result<u8, String> {
         Command::Context(ContextCmd::Export { name }) => {
             let (meta, records) = db::load(&path)?;
             let engine = Engine::new(meta, records);
-            let i = engine.find_context(&name).ok_or(format!("no context named `{name}`; `fds context ls` lists them"))?;
+            let i = engine.find_context(&name).ok_or(format!(
+                "no context named `{name}`; `fds context ls` lists them"
+            ))?;
             let b = engine.context(i);
             // Instructions as written, then each linked record as a section:
             // plain Markdown any coding agent reads as AGENTS.md.
@@ -881,15 +1084,32 @@ async fn run(cli: Cli) -> Result<u8, String> {
             if !b.records.is_empty() {
                 out.push_str("\n## Reference\n");
                 for h in &b.records {
-                    out.push_str(&format!("\n### {}\n\n{}\n", h.question.as_deref().unwrap_or(&h.title), h.body.trim_end()));
+                    out.push_str(&format!(
+                        "\n### {}\n\n{}\n",
+                        h.question.as_deref().unwrap_or(&h.title),
+                        h.body.trim_end()
+                    ));
                 }
             }
             print!("{out}");
         }
 
-        Command::Serve { port, open, clearance, .. } => serve::run(path, port, open, clearance).await?,
-        Command::Mcp { write, agent, clearance, .. } => {
-            let name = path.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| "db".into());
+        Command::Serve {
+            port,
+            open,
+            clearance,
+            ..
+        } => serve::run(path, port, open, clearance).await?,
+        Command::Mcp {
+            write,
+            agent,
+            clearance,
+            ..
+        } => {
+            let name = path
+                .file_stem()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or_else(|| "db".into());
             let memory = write.then(|| mcp::Memory {
                 path: path.clone(),
                 sector: name.clone(),
@@ -897,9 +1117,26 @@ async fn run(cli: Cli) -> Result<u8, String> {
             });
             mcp::run(vec![(name, path)], memory, clearance).await?
         }
-        Command::Sector(_) | Command::Journal(_) | Command::Check { .. } | Command::Guard { .. } | Command::Audit(_) => unreachable!(),
+        Command::Sector(_)
+        | Command::Journal(_)
+        | Command::Check { .. }
+        | Command::Guard { .. }
+        | Command::Audit(_) => unreachable!(),
 
-        Command::Policy(PolicyCmd::Add { text, subject, action, rule, min, max, values, unit, tool, tool_subject, tool_action, tool_value }) => {
+        Command::Policy(PolicyCmd::Add {
+            text,
+            subject,
+            action,
+            rule,
+            min,
+            max,
+            values,
+            unit,
+            tool,
+            tool_subject,
+            tool_action,
+            tool_value,
+        }) => {
             let mut attrs = std::collections::BTreeMap::new();
             attrs.insert("subject".to_string(), subject.trim().to_string());
             attrs.insert("action".to_string(), action.trim().to_string());
@@ -911,18 +1148,28 @@ async fn run(cli: Cli) -> Result<u8, String> {
                     if !ok(&min) || !ok(&max) {
                         return Err("a range policy needs numeric --min and --max".into());
                     }
-                    if policy::number(min.as_deref().unwrap()).unwrap() > policy::number(max.as_deref().unwrap()).unwrap() {
+                    if policy::number(min.as_deref().unwrap()).unwrap()
+                        > policy::number(max.as_deref().unwrap()).unwrap()
+                    {
                         return Err("--min is above --max: nothing could ever pass".into());
                     }
                 }
                 "one_of" => {
-                    if values.as_deref().map_or(true, |v| v.split(',').all(|x| x.trim().is_empty())) {
+                    if values
+                        .as_deref()
+                        .map_or(true, |v| v.split(',').all(|x| x.trim().is_empty()))
+                    {
                         return Err("a one_of policy needs --values a,b,c".into());
                     }
                 }
                 other => return Err(format!("unknown rule `{other}`: use deny, range or one_of")),
             }
-            for (k, v) in [("min", &min), ("max", &max), ("values", &values), ("unit", &unit)] {
+            for (k, v) in [
+                ("min", &min),
+                ("max", &max),
+                ("values", &values),
+                ("unit", &unit),
+            ] {
                 if let Some(v) = v.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
                     attrs.insert(k.to_string(), v.to_string());
                 }
@@ -938,17 +1185,35 @@ async fn run(cli: Cli) -> Result<u8, String> {
             }
             let _lock = db::lock(&path)?;
             let (mut meta, mut records) = db::load(&path)?;
-            let id = upsert_fact(&mut records, &text, &text, "policy", "owner", "human", &today())?;
-            let r = records.iter_mut().find(|r| r.id == id).ok_or("policy was not stored")?;
+            let id = upsert_fact(
+                &mut records,
+                &text,
+                &text,
+                "policy",
+                "owner",
+                "human",
+                &today(),
+            )?;
+            let r = records
+                .iter_mut()
+                .find(|r| r.id == id)
+                .ok_or("policy was not stored")?;
             r.rtype = policy::TYPE.to_string();
             r.attrs = attrs;
             db::save(&path, &mut meta, &records)?;
-            if json_out { print_json(&json!({"id": id})) } else { println!("{id}") }
+            if json_out {
+                print_json(&json!({"id": id}))
+            } else {
+                println!("{id}")
+            }
         }
 
         Command::Policy(PolicyCmd::Ls) => {
             let (_, records) = db::load(&path)?;
-            let counted: Vec<String> = policy::policies(&records).into_iter().map(|p| p.id).collect();
+            let counted: Vec<String> = policy::policies(&records)
+                .into_iter()
+                .map(|p| p.id)
+                .collect();
             let rows: Vec<&Record> = records.iter().filter(|r| r.rtype == policy::TYPE).collect();
             if json_out {
                 let v: Vec<Value> = rows
@@ -961,14 +1226,43 @@ async fn run(cli: Cli) -> Result<u8, String> {
             } else {
                 for r in rows {
                     let a = |k: &str| r.attrs.get(k).cloned().unwrap_or_default();
-                    let counts = if counted.contains(&r.id) { String::new() } else { format!("  [IGNORED: verified by {}, not by a person]", r.verified_by) };
-                    println!("{}  {} {} {}{}  {}{counts}", &r.id[..r.id.len().min(8)], a("rule"), a("subject"), a("action"), policy_bounds(r), r.body);
+                    let counts = if counted.contains(&r.id) {
+                        String::new()
+                    } else {
+                        format!(
+                            "  [IGNORED: verified by {}, not by a person]",
+                            r.verified_by
+                        )
+                    };
+                    println!(
+                        "{}  {} {} {}{}  {}{counts}",
+                        &r.id[..r.id.len().min(8)],
+                        a("rule"),
+                        a("subject"),
+                        a("action"),
+                        policy_bounds(r),
+                        r.body
+                    );
                 }
             }
         }
 
-        Command::Log { summary, why, files, branch, commit, by, role, status, to } => {
-            let (git_branch, git_commit) = if branch.is_none() || commit.is_none() { journal::git_context() } else { Default::default() };
+        Command::Log {
+            summary,
+            why,
+            files,
+            branch,
+            commit,
+            by,
+            role,
+            status,
+            to,
+        } => {
+            let (git_branch, git_commit) = if branch.is_none() || commit.is_none() {
+                journal::git_context()
+            } else {
+                Default::default()
+            };
             let (branch, commit) = (branch.unwrap_or(git_branch), commit.unwrap_or(git_commit));
             let at = now();
             let agent = by.as_deref().unwrap_or("");
@@ -984,17 +1278,34 @@ async fn run(cli: Cli) -> Result<u8, String> {
                 status: status.as_deref().unwrap_or(""),
                 to: to.as_deref().unwrap_or(""),
             };
-            let verified_by = if agent.is_empty() { "human".to_string() } else { format!("model:{agent}") };
+            let verified_by = if agent.is_empty() {
+                "human".to_string()
+            } else {
+                format!("model:{agent}")
+            };
             let id = journal::append(&path, journal::record(&draft, &verified_by)?)?;
-            if json_out { print_json(&json!({"id": id})) } else { println!("{id}") }
+            if json_out {
+                print_json(&json!({"id": id}))
+            } else {
+                println!("{id}")
+            }
         }
     }
     Ok(0)
 }
 
 /// The entries a `journal` command works on, newest first, and a name for the page.
-fn journal_entries(src: &JournalSrc, db_file: Option<&Path>) -> Result<(Vec<journal::Entry>, String), String> {
-    let filter = journal::Filter { branch: src.branch.clone(), agent: src.agent.clone(), role: src.role.clone(), since: src.since.clone(), limit: None };
+fn journal_entries(
+    src: &JournalSrc,
+    db_file: Option<&Path>,
+) -> Result<(Vec<journal::Entry>, String), String> {
+    let filter = journal::Filter {
+        branch: src.branch.clone(),
+        agent: src.agent.clone(),
+        role: src.role.clone(),
+        since: src.since.clone(),
+        limit: None,
+    };
     let mut all = Vec::new();
     let name;
     if let Some(manifest) = &src.sectors {
@@ -1007,7 +1318,11 @@ fn journal_entries(src: &JournalSrc, db_file: Option<&Path>) -> Result<(Vec<jour
     } else {
         let path = db::locate(db_file)?;
         let (meta, records) = db::load(&path)?;
-        name = if meta.name.is_empty() { path.display().to_string() } else { meta.name };
+        name = if meta.name.is_empty() {
+            path.display().to_string()
+        } else {
+            meta.name
+        };
         all = journal::entries(&records, "", &filter);
     }
     journal::sort_newest_first(&mut all);
@@ -1020,7 +1335,13 @@ fn journal_entries(src: &JournalSrc, db_file: Option<&Path>) -> Result<(Vec<jour
 fn policy_bounds(r: &Record) -> String {
     let a = |k: &str| r.attrs.get(k).cloned().unwrap_or_default();
     match a("rule").as_str() {
-        "range" => format!(" [{}..{}{}{}]", a("min"), a("max"), if a("unit").is_empty() { "" } else { " " }, a("unit")),
+        "range" => format!(
+            " [{}..{}{}{}]",
+            a("min"),
+            a("max"),
+            if a("unit").is_empty() { "" } else { " " },
+            a("unit")
+        ),
         "one_of" => format!(" [{}]", a("values")),
         _ => String::new(),
     }
@@ -1029,7 +1350,10 @@ fn policy_bounds(r: &Record) -> String {
 /// The policies that count, and what to answer when none matches: from one
 /// database, or from every sector of a manifest (a policy counts wherever a
 /// person verified it, and never otherwise).
-fn policy_source(db_file: Option<&Path>, manifest: Option<&Path>) -> Result<(Vec<policy::Policy>, policy::Fallback), String> {
+fn policy_source(
+    db_file: Option<&Path>,
+    manifest: Option<&Path>,
+) -> Result<(Vec<policy::Policy>, policy::Fallback), String> {
     if let Some(mpath) = manifest {
         let m = sectors::Manifest::load(mpath)?;
         let mut all = Vec::new();
@@ -1037,7 +1361,12 @@ fn policy_source(db_file: Option<&Path>, manifest: Option<&Path>) -> Result<(Vec
             let (_, records) = db::load(&m.path_of(def))?;
             all.extend(policy::policies(&records));
         }
-        let fallback = m.default.as_deref().map(policy::Fallback::parse).transpose()?.unwrap_or_default();
+        let fallback = m
+            .default
+            .as_deref()
+            .map(policy::Fallback::parse)
+            .transpose()?
+            .unwrap_or_default();
         return Ok((all, fallback));
     }
     let path = db::locate(db_file)?;
@@ -1045,7 +1374,15 @@ fn policy_source(db_file: Option<&Path>, manifest: Option<&Path>) -> Result<(Vec
     Ok((policy::policies(&records), policy::Fallback::default()))
 }
 
-fn check_cmd(subject: &str, action: &str, value: Option<&str>, manifest: Option<&Path>, default: Option<&str>, db_file: Option<&Path>, json_out: bool) -> Result<u8, String> {
+fn check_cmd(
+    subject: &str,
+    action: &str,
+    value: Option<&str>,
+    manifest: Option<&Path>,
+    default: Option<&str>,
+    db_file: Option<&Path>,
+    json_out: bool,
+) -> Result<u8, String> {
     let (policies, mut fallback) = policy_source(db_file, manifest)?;
     if let Some(d) = default {
         fallback = policy::Fallback::parse(d)?;
@@ -1056,14 +1393,26 @@ fn check_cmd(subject: &str, action: &str, value: Option<&str>, manifest: Option<
     } else {
         println!("{}", decision.summary());
     }
-    Ok(if decision.allowed() { 0 } else { policy::DENY_EXIT })
+    Ok(if decision.allowed() {
+        0
+    } else {
+        policy::DENY_EXIT
+    })
 }
 
 /// The black box: journal entries and, when there is an audit file, the guard's
 /// decisions, in the order they happened.
-fn journal_steps(src: &JournalSrc, entries: &[journal::Entry]) -> Result<Vec<journal::Step>, String> {
+fn journal_steps(
+    src: &JournalSrc,
+    entries: &[journal::Entry],
+) -> Result<Vec<journal::Step>, String> {
     let mut steps: Vec<journal::Step> = entries.iter().map(journal::Step::of).collect();
-    let audit_file = src.audit.clone().or_else(|| src.sectors.as_deref().map(audit::beside).filter(|p| p.exists()));
+    let audit_file = src.audit.clone().or_else(|| {
+        src.sectors
+            .as_deref()
+            .map(audit::beside)
+            .filter(|p| p.exists())
+    });
     if let Some(f) = audit_file {
         steps.extend(audit::steps(&f)?);
     }
@@ -1096,11 +1445,16 @@ fn audit_cmd(cmd: &AuditCmd, json_out: bool) -> Result<u8, String> {
             let path = file.clone().unwrap_or_else(default);
             let r = audit::verify(&path)?;
             if json_out {
-                print_json(&json!({"entries": r.lines, "intact": r.broken.is_none(), "head": r.head, "broken_at": r.broken.as_ref().map(|b| b.0), "why": r.broken.as_ref().map(|b| b.1.clone())}));
+                print_json(
+                    &json!({"entries": r.lines, "intact": r.broken.is_none(), "head": r.head, "broken_at": r.broken.as_ref().map(|b| b.0), "why": r.broken.as_ref().map(|b| b.1.clone())}),
+                );
             } else if let Some((line, why)) = &r.broken {
                 println!("BROKEN at line {line}: {why}");
             } else {
-                println!("{} entries, the chain is intact. Last hash: {}", r.lines, r.head);
+                println!(
+                    "{} entries, the chain is intact. Last hash: {}",
+                    r.lines, r.head
+                );
                 println!("Keep that hash where the agent cannot write: cut-off lines at the end only show against it.");
             }
             Ok(if r.broken.is_none() { 0 } else { 1 })
@@ -1131,8 +1485,13 @@ fn journal_cmd(cmd: &JournalCmd, db_file: Option<&Path>, json_out: bool) -> Resu
         }
         JournalCmd::Export { src, out } => {
             let (entries, name) = journal_entries(src, db_file)?;
-            std::fs::write(out, journal::markdown(&entries, &name)).map_err(|e| format!("cannot write {}: {e}", out.display()))?;
-            eprintln!("Wrote {} to {}.", journal::summary_line(&entries), out.display());
+            std::fs::write(out, journal::markdown(&entries, &name))
+                .map_err(|e| format!("cannot write {}: {e}", out.display()))?;
+            eprintln!(
+                "Wrote {} to {}.",
+                journal::summary_line(&entries),
+                out.display()
+            );
         }
         JournalCmd::Publish { src, repo, to } => {
             let (entries, name) = journal_entries(src, db_file)?;
@@ -1141,17 +1500,27 @@ fn journal_cmd(cmd: &JournalCmd, db_file: Option<&Path>, json_out: bool) -> Resu
             let message = format!("journal: {}", journal::summary_line(&entries));
             let steps = journal_steps(src, &entries)?;
             let tl = journal::timeline_markdown(&steps, &name);
-            let files: [(&str, &[u8]); 3] = [("JOURNAL.md", md.as_bytes()), ("TIMELINE.md", tl.as_bytes()), ("journal.json", js.as_bytes())];
+            let files: [(&str, &[u8]); 3] = [
+                ("JOURNAL.md", md.as_bytes()),
+                ("TIMELINE.md", tl.as_bytes()),
+                ("journal.json", js.as_bytes()),
+            ];
             let done = journal::publish(repo, to, &files, &message)?;
             let short = &done.commit[..done.commit.len().min(10)];
             if done.unchanged {
                 eprintln!("Branch `{to}` already has this journal ({short}); nothing to commit.");
             } else {
-                eprintln!("{} branch `{to}` at {short} with {}.", if done.created { "Created" } else { "Updated" }, journal::summary_line(&entries));
+                eprintln!(
+                    "{} branch `{to}` at {short} with {}.",
+                    if done.created { "Created" } else { "Updated" },
+                    journal::summary_line(&entries)
+                );
                 eprintln!("Your files, your index and your current branch were not touched. To share it: git push origin {to}");
             }
             if json_out {
-                print_json(&json!({"branch": to, "commit": done.commit, "unchanged": done.unchanged}));
+                print_json(
+                    &json!({"branch": to, "commit": done.commit, "unchanged": done.unchanged}),
+                );
             }
         }
     }
@@ -1160,10 +1529,24 @@ fn journal_cmd(cmd: &JournalCmd, db_file: Option<&Path>, json_out: bool) -> Resu
 
 fn sector_cmd(cmd: &SectorCmd, json_out: bool) -> Result<u8, String> {
     match cmd {
-        SectorCmd::New { name, agent, reads, file, manifest, clearance } => {
-            let mut m = if manifest.exists() { sectors::Manifest::load(manifest)? } else { sectors::Manifest::new(manifest) };
+        SectorCmd::New {
+            name,
+            agent,
+            reads,
+            file,
+            manifest,
+            clearance,
+        } => {
+            let mut m = if manifest.exists() {
+                sectors::Manifest::load(manifest)?
+            } else {
+                sectors::Manifest::new(manifest)
+            };
             if m.get(name).is_some() {
-                return Err(format!("sector `{name}` already exists in {}", manifest.display()));
+                return Err(format!(
+                    "sector `{name}` already exists in {}",
+                    manifest.display()
+                ));
             }
             let file = file.clone().unwrap_or_else(|| format!("{name}.fds"));
             let key = agent.then(sectors::new_key);
@@ -1172,13 +1555,22 @@ fn sector_cmd(cmd: &SectorCmd, json_out: bool) -> Result<u8, String> {
                 file: file.clone(),
                 reads: reads.clone(),
                 key_sha256: key.as_deref().map(sectors::key_hash),
-                clearance: clearance.iter().map(|c| c.trim().to_string()).filter(|c| !c.is_empty()).collect(),
+                clearance: clearance
+                    .iter()
+                    .map(|c| c.trim().to_string())
+                    .filter(|c| !c.is_empty())
+                    .collect(),
             });
             let path = m.path_of(m.get(name).unwrap());
             let created = !path.exists();
             if created {
                 let date = today();
-                let mut meta = DbMeta { name: name.clone(), created: date.clone(), updated: date, ..Default::default() };
+                let mut meta = DbMeta {
+                    name: name.clone(),
+                    created: date.clone(),
+                    updated: date,
+                    ..Default::default()
+                };
                 // Checked before anything is written: a bad name or a
                 // missing `reads` target leaves no stray database behind.
                 m.save(manifest)?;
@@ -1189,7 +1581,15 @@ fn sector_cmd(cmd: &SectorCmd, json_out: bool) -> Result<u8, String> {
             if json_out {
                 print_json(&json!({"name": name, "file": file, "created": created, "key": key}));
             } else {
-                eprintln!("Sector `{name}` → {}{}", path.display(), if created { " (new, empty)" } else { " (existing file)" });
+                eprintln!(
+                    "Sector `{name}` → {}{}",
+                    path.display(),
+                    if created {
+                        " (new, empty)"
+                    } else {
+                        " (existing file)"
+                    }
+                );
                 if let Some(k) = key {
                     eprintln!("Key for agent `{name}`, shown only now. Give it to the agent as FDS_KEY or as `Authorization: Bearer`:");
                     println!("{k}");
@@ -1207,14 +1607,30 @@ fn sector_cmd(cmd: &SectorCmd, json_out: bool) -> Result<u8, String> {
                 print_json(&Value::Array(rows));
             } else {
                 for r in &rows {
-                    let reads: Vec<String> = r["reads"].as_array().unwrap().iter().filter_map(|x| x.as_str().map(String::from)).collect();
+                    let reads: Vec<String> = r["reads"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .filter_map(|x| x.as_str().map(String::from))
+                        .collect();
                     println!(
                         "{:<16} {:<6} {:>7} records  {:<20} reads: {}",
                         r["name"].as_str().unwrap_or(""),
-                        if r["agent"].as_bool() == Some(true) { "agent" } else { "shared" },
-                        r["records"].as_u64().map(|n| n.to_string()).unwrap_or_else(|| "?".into()),
+                        if r["agent"].as_bool() == Some(true) {
+                            "agent"
+                        } else {
+                            "shared"
+                        },
+                        r["records"]
+                            .as_u64()
+                            .map(|n| n.to_string())
+                            .unwrap_or_else(|| "?".into()),
                         r["file"].as_str().unwrap_or(""),
-                        if reads.is_empty() { "—".to_string() } else { reads.join(", ") }
+                        if reads.is_empty() {
+                            "—".to_string()
+                        } else {
+                            reads.join(", ")
+                        }
                     );
                 }
             }
@@ -1222,17 +1638,26 @@ fn sector_cmd(cmd: &SectorCmd, json_out: bool) -> Result<u8, String> {
         SectorCmd::Key { name, manifest } => {
             let mut m = sectors::Manifest::load(manifest)?;
             let key = sectors::new_key();
-            let def = m.get_mut(name).ok_or(format!("no sector `{name}` in {}", manifest.display()))?;
+            let def = m
+                .get_mut(name)
+                .ok_or(format!("no sector `{name}` in {}", manifest.display()))?;
             def.key_sha256 = Some(sectors::key_hash(&key));
             m.save(manifest)?;
             if json_out {
                 print_json(&json!({"name": name, "key": key}));
             } else {
-                eprintln!("New key for agent `{name}`, shown only now; the old key no longer works:");
+                eprintln!(
+                    "New key for agent `{name}`, shown only now; the old key no longer works:"
+                );
                 println!("{key}");
             }
         }
-        SectorCmd::Promote { id, from, to, manifest } => {
+        SectorCmd::Promote {
+            id,
+            from,
+            to,
+            manifest,
+        } => {
             let m = sectors::Manifest::load(manifest)?;
             let src = m.path_of(m.get(from).ok_or(format!("no sector `{from}`"))?);
             let dst = m.path_of(m.get(to).ok_or(format!("no sector `{to}`"))?);
@@ -1241,7 +1666,11 @@ fn sector_cmd(cmd: &SectorCmd, json_out: bool) -> Result<u8, String> {
             }
             // Both locks, always in the same order: two promotions running
             // the opposite way can never hold one each and wait forever.
-            let (first, second) = if src < dst { (&src, &dst) } else { (&dst, &src) };
+            let (first, second) = if src < dst {
+                (&src, &dst)
+            } else {
+                (&dst, &src)
+            };
             let _l1 = db::lock(first)?;
             let _l2 = db::lock(second)?;
             let (mut src_meta, mut src_records) = db::load(&src)?;

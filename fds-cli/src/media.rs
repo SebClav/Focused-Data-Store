@@ -41,11 +41,17 @@ pub fn image_extensions() -> Vec<&'static str> {
 
 /// `FDS_VISION_MODEL`, or the default.
 pub fn vision_model() -> String {
-    std::env::var("FDS_VISION_MODEL").ok().filter(|m| !m.trim().is_empty()).unwrap_or_else(|| DEFAULT_VISION_MODEL.to_string())
+    std::env::var("FDS_VISION_MODEL")
+        .ok()
+        .filter(|m| !m.trim().is_empty())
+        .unwrap_or_else(|| DEFAULT_VISION_MODEL.to_string())
 }
 
 pub fn sha256_hex(bytes: &[u8]) -> String {
-    Sha256::digest(bytes).iter().map(|b| format!("{b:02x}")).collect()
+    Sha256::digest(bytes)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 /// What the model is asked. Written for retrieval, not for a caption: the
@@ -59,7 +65,9 @@ pub fn prompt(lang: Option<&str>) -> String {
         "First, under the heading TEXT, copy every piece of text you can read in          this image exactly as written, one per line: codes, numbers, model names,          labels, error messages, buttons. Do not translate or correct it.          Then, under the heading DESCRIPTION, say in a short paragraph what the          image shows, naming the visible parts and where they are, so it can be          found later by a text search. Describe only what is visible; if something          cannot be made out, say so instead of guessing. No markdown.",
     );
     if let Some(name) = lang.and_then(language_name) {
-        p.push_str(&format!(" Write the DESCRIPTION in {name}; keep the TEXT exactly as it appears."));
+        p.push_str(&format!(
+            " Write the DESCRIPTION in {name}; keep the TEXT exactly as it appears."
+        ));
     }
     p
 }
@@ -84,7 +92,14 @@ pub fn image_id(name: &str) -> String {
     stable_id(&format!("image:{name}"))
 }
 
-pub fn image_record(name: &str, collection: &str, bytes: &[u8], media: &str, description: &str, model: &str) -> Record {
+pub fn image_record(
+    name: &str,
+    collection: &str,
+    bytes: &[u8],
+    media: &str,
+    description: &str,
+    model: &str,
+) -> Record {
     let file = name.rsplit(['/', '\\']).next().unwrap_or(name).to_string();
     let mut attrs = BTreeMap::new();
     attrs.insert("file".to_string(), name.to_string());
@@ -116,9 +131,19 @@ mod tests {
 
     #[test]
     fn an_image_record_is_honest_about_where_its_text_came_from() {
-        let r = image_record("fotos/router.jpg", "red", b"not really a jpeg", "image/jpeg", "Router, back panel.", "qwen2.5vl:3b");
+        let r = image_record(
+            "fotos/router.jpg",
+            "red",
+            b"not really a jpeg",
+            "image/jpeg",
+            "Router, back panel.",
+            "qwen2.5vl:3b",
+        );
         assert_eq!((r.kind, r.rtype.as_str()), (Kind::Knowledge, IMAGE_TYPE));
-        assert_eq!(r.verified_by, "model:qwen2.5vl:3b", "a model wrote it, and the record says so");
+        assert_eq!(
+            r.verified_by, "model:qwen2.5vl:3b",
+            "a model wrote it, and the record says so"
+        );
         assert_eq!(r.title, "router.jpg");
         assert_eq!(r.attrs["sha256"], sha256_hex(b"not really a jpeg"));
         assert_eq!(r.id, image_id("fotos/router.jpg"));
@@ -129,8 +154,14 @@ mod tests {
         assert_eq!(media_type("JPG"), Some("image/jpeg"));
         assert_eq!(media_type("md"), None);
         assert!(prompt(Some("es-BO")).contains("Write the DESCRIPTION in Spanish"));
-        assert!(prompt(None).starts_with("First, under the heading TEXT"), "transcription comes first");
+        assert!(
+            prompt(None).starts_with("First, under the heading TEXT"),
+            "transcription comes first"
+        );
         assert!(!prompt(None).contains("Write the DESCRIPTION in"));
-        assert_eq!(sha256_hex(b"abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+        assert_eq!(
+            sha256_hex(b"abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
     }
 }

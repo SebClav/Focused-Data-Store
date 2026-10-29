@@ -25,7 +25,11 @@ pub fn locate(explicit: Option<&Path>) -> Result<PathBuf, String> {
         1 => Ok(found.remove(0)),
         _ => Err(format!(
             "several databases here ({}). Pick one with --db <file>.",
-            found.iter().map(|p| p.display().to_string()).collect::<Vec<_>>().join(", ")
+            found
+                .iter()
+                .map(|p| p.display().to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
         )),
     }
 }
@@ -57,7 +61,10 @@ pub fn lock(path: &Path) -> Result<WriteLock, String> {
         .open(&lock_path)
         .map_err(|e| format!("{}: {e}", lock_path.display()))?;
     let wait = Duration::from_secs(
-        std::env::var("FDS_LOCK_TIMEOUT_SECS").ok().and_then(|v| v.parse().ok()).unwrap_or(60),
+        std::env::var("FDS_LOCK_TIMEOUT_SECS")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(60),
     );
     let start = Instant::now();
     loop {
@@ -73,7 +80,9 @@ pub fn lock(path: &Path) -> Result<WriteLock, String> {
                     wait.as_secs()
                 ))
             }
-            Err(std::fs::TryLockError::Error(e)) => return Err(format!("{}: cannot lock: {e}", lock_path.display())),
+            Err(std::fs::TryLockError::Error(e)) => {
+                return Err(format!("{}: cannot lock: {e}", lock_path.display()))
+            }
         }
     }
 }
@@ -89,7 +98,10 @@ pub struct Stamp {
 
 pub fn stamp(path: &Path) -> Option<Stamp> {
     let m = std::fs::metadata(path).ok()?;
-    Some(Stamp { len: m.len(), modified: m.modified().ok() })
+    Some(Stamp {
+        len: m.len(),
+        modified: m.modified().ok(),
+    })
 }
 
 pub fn save(path: &Path, meta: &mut DbMeta, records: &[Record]) -> Result<(), String> {
@@ -101,14 +113,18 @@ fn describe(path: &Path, e: FdsError) -> String {
     let name = path.display();
     match e {
         FdsError::BadMagic => {
-            let head = std::fs::read(path).ok().map(|b| b.into_iter().take(4).collect::<Vec<_>>());
+            let head = std::fs::read(path)
+                .ok()
+                .map(|b| b.into_iter().take(4).collect::<Vec<_>>());
             if head.as_deref() == Some(b"FDS1") {
                 format!("{name} is a version 1 file; this tool reads versions 2, 3 and 4. Re-create it with `fds init` and `fds add`.")
             } else {
                 format!("{name} is not a FDS database.")
             }
         }
-        FdsError::UnsupportedVersion(v) => format!("{name} uses format version {v}, which this tool does not support."),
+        FdsError::UnsupportedVersion(v) => {
+            format!("{name} uses format version {v}, which this tool does not support.")
+        }
         FdsError::Truncated => format!("{name} is truncated or corrupt."),
         FdsError::Io(e) => format!("{name}: {e}"),
         FdsError::Bincode(e) => format!("{name} is corrupt: {e}"),
@@ -128,7 +144,9 @@ pub fn resolve_id(records: &[Record], wanted: &str) -> Result<usize, String> {
         return Ok(i);
     }
     if wanted.len() < 6 {
-        return Err(format!("id prefix `{wanted}` is too short; use at least 6 characters."));
+        return Err(format!(
+            "id prefix `{wanted}` is too short; use at least 6 characters."
+        ));
     }
     let matches: Vec<usize> = records
         .iter()
@@ -139,7 +157,9 @@ pub fn resolve_id(records: &[Record], wanted: &str) -> Result<usize, String> {
     match matches.len() {
         0 => Err(format!("no record with id `{wanted}`.")),
         1 => Ok(matches[0]),
-        n => Err(format!("id prefix `{wanted}` matches {n} records; use more characters.")),
+        n => Err(format!(
+            "id prefix `{wanted}` matches {n} records; use more characters."
+        )),
     }
 }
 
@@ -162,8 +182,16 @@ mod tests {
                     for i in 0..25 {
                         let _lock = lock(&path).unwrap();
                         let (mut meta, mut records) = load(&path).unwrap();
-                        crate::ops::upsert_fact(&mut records, &format!("question {t} {i}"), "answer", "default", "test", "human", "2026-10-12")
-                            .unwrap();
+                        crate::ops::upsert_fact(
+                            &mut records,
+                            &format!("question {t} {i}"),
+                            "answer",
+                            "default",
+                            "test",
+                            "human",
+                            "2026-10-12",
+                        )
+                        .unwrap();
                         save(&path, &mut meta, &records).unwrap();
                     }
                 })
@@ -189,7 +217,11 @@ mod tests {
         let before = stamp(&path);
         std::thread::sleep(Duration::from_millis(20));
         save(&path, &mut DbMeta::default(), &[]).unwrap();
-        assert_ne!(before, stamp(&path), "same size, new file: the stamp must differ");
+        assert_ne!(
+            before,
+            stamp(&path),
+            "same size, new file: the stamp must differ"
+        );
         std::fs::remove_file(&path).ok();
     }
 }

@@ -5,7 +5,7 @@ edition = "2021"
 description = "FDS local knowledge database CLI"
 
 [workspace]
-members = ["fds-core"]
+members = ["fds-core", "fds-cli"]
 resolver = "2"
 
 [[bin]]

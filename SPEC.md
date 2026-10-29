@@ -1,6 +1,13 @@
 # FDS Specification v1 — Focused Model Data Store
 
-**Status:** draft, experimental · **Date:** 2026-10-29 · **File format:** FDS 4.0
+**Status:** draft, experimental · **Date:** 2026-10-30 · **File format:** FDS 4.0
+
+**Revision 2026-10-30:** interrogatives and modals are no longer stopwords (§4.1):
+`can`, `could`, `should`, `would`, `will`, `how`, `who`, `whom`, `why`, `when`,
+`where`, `which`, `cómo`, `cuándo`, `dónde`, `quién`, `quiénes`, `cuánto`,
+`cuánta`, `cuántos`, `cuántas`, `cuál` and `cuáles`. The list has 170 words, not
+193. No file is affected; a token set key computed with the old list differs only
+for texts that contain one of these words.
 
 **Revision 2026-10-29:** negations are no longer stopwords (§4.1), so the list has
 193 words, not 198. No file is affected; a token set key computed with the old
@@ -230,7 +237,7 @@ provenance to trust; it lets the caller ask for the one it does.
   folded text, in order, without the stopwords.
 - **token set key**: the content tokens, de-duplicated and sorted bytewise
   (UTF-8). Two texts with the same key are the same question for stage 1.
-- **stopwords**: the 193 English and Spanish words of `conformance/stopwords.txt`.
+- **stopwords**: the 170 English and Spanish words of `conformance/stopwords.txt`.
   The list is part of this standard, because it decides which queries match:
   it changes only with a new version of this document. A **negation** is never
   a stopword (`no`, `not`, `nor`, `cannot`, `sin`, and any other word that
@@ -321,12 +328,13 @@ On a match, the result is that single record with confidence `exact`, and
 stage 2 is skipped.
 
 This rule is about *which words count*, and it does not understand meaning.
-Content tokens still ignore question words and auxiliaries such as `who`,
-`what`, `how`, `can` and `should`, so two questions that differ only by one of
-them ("Can users delete records?" and "Should users delete records?") have the
-same token set key and the same stage-1 answer. A deployment that needs to tell
-them apart must record them as separate questions in separate sectors, or
-review what stage 1 answers.
+Interrogatives and modals (`who`, `how`, `when`, `can`, `should`, ...) are not
+stopwords, so "Can users delete records?" and "Should users delete records?"
+have different keys and the second no longer gets the first one's answer as
+`exact`. Words that stay on the list (`what`, `is`, `the`, `do`, ...) are still
+ignored, and the rule still does not understand meaning: it compares words, so a
+paraphrase that shares none of them is not `exact` either. A tool MUST NOT add
+an interrogative or a modal to the list for the same reason as a negation.
 
 ### 4.3 Stage 2 — retrieval over all records
 

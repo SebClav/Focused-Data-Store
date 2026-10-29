@@ -278,3 +278,32 @@ fn a_negated_question_is_not_an_exact_match() {
         assert_ne!(confidence(negated), "exact", "{negated}");
     }
 }
+
+#[test]
+fn a_different_question_word_or_modal_is_not_an_exact_match() {
+    let sandbox = Sandbox::new();
+    ok(&sandbox.fds(&["init", "t"]));
+    ok(&sandbox.fds(&[
+        "--db",
+        "t.fds",
+        "fact",
+        "add",
+        "Can I delete the account?",
+        "Yes",
+    ]));
+
+    let confidence = |question: &str| {
+        let out = sandbox.fds(&["--db", "t.fds", "--json", "query", question]);
+        let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+        json["confidence"].as_str().unwrap().to_string()
+    };
+    assert_eq!(confidence("can i delete the account"), "exact");
+    for other in [
+        "Should I delete the account?",
+        "Who can delete the account?",
+        "How can I delete the account?",
+        "When can I delete the account?",
+    ] {
+        assert_ne!(confidence(other), "exact", "{other}");
+    }
+}

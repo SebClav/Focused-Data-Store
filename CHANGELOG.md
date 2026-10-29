@@ -26,8 +26,17 @@
   token set key, and the stored answer came back as `exact` for its opposite.
   The list is now 193 words in `conformance/stopwords.txt` and in the Rust
   tool, with eleven new vectors (the Python suite runs 287 checks, from 276).
-  Question words and auxiliaries (`who`, `how`, `can`, `should`) are still
-  ignored; §4.2 says so.
+- Interrogatives and modals are no longer stopwords either (SPEC.md §4.1,
+  revision 2026-10-30): `can`, `should`, `how`, `who`, `when`, `where`,
+  `which`, `cómo`, `quién`, `cuál` and their kin, 23 words, so the list is 170.
+  "Can users delete records?" no longer returns the answer stored for
+  "Should users delete records?" or "How can users delete records?" as `exact`.
+  Seven new vectors; the Python suite runs 294 checks. The benchmark
+  (`benchmark_v3`, S7) found this.
+- `fds mcp --sectors` honoured no `--read-only`: an agent started read-only
+  could still write with `fds_remember`. It now gets no memory tools.
+- `fds_remember` replaced a fact a person had verified when it was given the
+  same question. It now refuses; an agent's own earlier answer is still replaced.
 
 ### Changed
 

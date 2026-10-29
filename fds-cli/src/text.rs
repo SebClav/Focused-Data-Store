@@ -34,8 +34,6 @@ const STOPWORDS: &[&str] = &[
     "both",
     "but",
     "by",
-    "can",
-    "could",
     "did",
     "do",
     "does",
@@ -59,7 +57,6 @@ const STOPWORDS: &[&str] = &[
     "him",
     "himself",
     "his",
-    "how",
     "i",
     "if",
     "in",
@@ -90,7 +87,6 @@ const STOPWORDS: &[&str] = &[
     "own",
     "same",
     "she",
-    "should",
     "so",
     "some",
     "such",
@@ -118,16 +114,8 @@ const STOPWORDS: &[&str] = &[
     "we",
     "were",
     "what",
-    "when",
-    "where",
-    "which",
     "while",
-    "who",
-    "whom",
-    "why",
-    "will",
     "with",
-    "would",
     "you",
     "your",
     "yours",
@@ -162,20 +150,9 @@ const STOPWORDS: &[&str] = &[
     "le",
     "les",
     "como",
-    "cómo",
     "qué",
-    "cuál",
-    "cuáles",
-    "cuánto",
-    "cuánta",
-    "cuántos",
-    "cuántas",
     "cuando",
-    "cuándo",
     "donde",
-    "dónde",
-    "quién",
-    "quiénes",
     "este",
     "esta",
     "estos",
@@ -563,7 +540,7 @@ mod tests {
     fn spanish_accents_survive() {
         assert_eq!(
             content_tokens("¿Cuál es la tensión máxima?"),
-            vec!["tensión", "máxima"]
+            vec!["cuál", "tensión", "máxima"]
         );
     }
 
@@ -571,11 +548,11 @@ mod tests {
     fn search_terms_fold_accents_but_content_tokens_keep_them() {
         assert_eq!(
             search_terms("¿Cuál es la tensión máxima?"),
-            vec!["tension", "maxima"]
+            vec!["cual", "tension", "maxima"]
         );
         assert_eq!(
             content_tokens("¿Cuál es la tensión máxima?"),
-            vec!["tensión", "máxima"]
+            vec!["cuál", "tensión", "máxima"]
         );
         assert_eq!(
             search_terms("horario de atencion"),

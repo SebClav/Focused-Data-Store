@@ -336,8 +336,22 @@ fn query(
     } else {
         store.records.as_slice()
     };
-    let result = query_records(records, text, collection, budget, links, review.verified_by);
+    let mut result = query_records(records, text, collection, budget, links, review.verified_by);
     let found = result["confidence"] != "none";
+    // "exact" and "strong" describe the match, not whether anyone reviewed the
+    // record, so say how many results are still waiting for a human.
+    let rows = result["results"].as_array().map_or(&[][..], Vec::as_slice);
+    let pending = rows
+        .iter()
+        .filter(|row| row["review_status"] == "pending")
+        .count();
+    if pending > 0 && review.status.is_none() {
+        eprintln!(
+            "note: {pending} of {} result(s) are pending human review; add --review-status approved to exclude them",
+            rows.len()
+        );
+    }
+    result["pending_review"] = json!(pending);
     print_value(result, json);
     if found {
         0

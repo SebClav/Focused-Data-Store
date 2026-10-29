@@ -56,6 +56,8 @@ fds --read-only --db examples/agent_guide.fds --json query "How should an AI cod
 
 Query labels describe retrieval matches, not whether a fact is true. Review important facts and their sources. In this build, some advanced command names are present in help but not implemented; do not assume MCP, embeddings, policy enforcement, audit history, or graphical management is available in this CLI-only package.
 
+A query reports how many of its results are still pending review: a `pending_review` count in the JSON output and a note on stderr. `exact` and `strong` describe the match, never whether anyone reviewed the record. Records added with `add` keep their `ingest` label, and approving a record keeps its earlier label in the `fds.origin` attribute.
+
 Use `--review-status approved` when an agent should receive only explicitly approved records. Existing records marked `verified_by=human` by older versions remain pending until they are explicitly reviewed; `--verified-by human` alone filters the legacy label and does not establish approval. The reviewer name is self-declared, and approval metadata can be altered by anyone with file write access; it is not authenticated or an append-only audit log.
 
 The `--read-only` option blocks database creation and all mutating CLI commands, including review approval. For a security boundary against other programs, also enforce read-only filesystem permissions on the `.fds` file.

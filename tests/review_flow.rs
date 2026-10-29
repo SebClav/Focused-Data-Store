@@ -194,8 +194,19 @@ fn imported_facts_procedures_contexts_and_documents_start_pending() {
     let records = listed.as_array().unwrap();
     assert_eq!(records.len(), 4);
     assert!(records.iter().all(|r| r["review_status"] == "pending"));
-    assert!(records.iter().all(|r| r["verified_by"] == "unreviewed"));
     assert!(records.iter().all(|r| r["last_verified"] == ""));
+    // A claim of `human` is withdrawn, but where a record came from is kept.
+    let label = |title: &str| {
+        records
+            .iter()
+            .find(|r| r["title"].as_str().is_some_and(|t| t.contains(title)))
+            .unwrap()["verified_by"]
+            .clone()
+    };
+    assert_eq!(label("hostname"), "unreviewed");
+    assert_eq!(label("Deploy"), "unreviewed");
+    assert_eq!(label("rules"), "unreviewed");
+    assert_eq!(label(".txt"), "ingest");
 }
 
 #[test]
@@ -243,4 +254,58 @@ fn approval_is_scoped_to_the_record_in_its_collection() {
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0]["id"], beta_id);
     assert_eq!(rows[0]["collection"], "beta");
+}
+
+#[test]
+fn ingested_documents_keep_their_provenance_label_and_stay_filterable() {
+    let db = TestDb::new();
+    db.init();
+    let document = db.0.with_extension("txt");
+    fs::write(&document, "Billing runbook. Restart nightly.").unwrap();
+    assert_success(&db.run(&["add", document.to_str().unwrap(), "-c", "kb"]));
+
+    let found = json(&db.run(&["--json", "query", "billing", "--verified-by", "ingest"]));
+    assert_eq!(found["results"][0]["verified_by"], "ingest");
+    assert_eq!(found["results"][0]["review_status"], "pending");
+
+    let id = found["results"][0]["id"].as_str().unwrap().to_string();
+    let approved = json(&db.run(&["--json", "review", "approve", &id, "--reviewer", "Ada"]));
+    assert_eq!(approved["verified_by"], "human");
+    assert_eq!(approved["attrs"]["fds.origin"], "ingest");
+}
+
+#[test]
+fn a_query_says_how_many_results_are_pending_review() {
+    let db = TestDb::new();
+    db.init();
+    assert_success(&db.run(&["fact", "add", "Who owns billing?", "Team A"]));
+
+    let out = db.run(&["--json", "query", "Who owns billing?"]);
+    assert_success(&out);
+    let result: Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(result["confidence"], "exact");
+    assert_eq!(result["pending_review"], 1);
+    let note = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        note.contains("1 of 1 result(s) are pending human review"),
+        "{note}"
+    );
+
+    let id = result["results"][0]["id"].as_str().unwrap().to_string();
+    assert_success(&db.run(&["review", "approve", &id, "--reviewer", "Ada"]));
+    let out = db.run(&["--json", "query", "Who owns billing?"]);
+    let result: Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(result["pending_review"], 0);
+    assert!(out.stderr.is_empty());
+
+    // Asking for a status explicitly is not nagged about.
+    assert_success(&db.run(&["fact", "add", "Who owns billing?", "Team B"]));
+    let out = db.run(&[
+        "--json",
+        "query",
+        "Who owns billing?",
+        "--review-status",
+        "pending",
+    ]);
+    assert!(out.stderr.is_empty());
 }

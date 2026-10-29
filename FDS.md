@@ -12,7 +12,7 @@ fds --read-only --db examples/agent_guide.fds --json query "relevant task terms"
 fds --read-only --db examples/agent_guide.fds --json show RECORD_ID
 ~~~
 
-When retrieving project facts for use as human-approved knowledge, add `--review-status approved` to the query. A legacy `verified_by=human` label alone is not evidence of an explicit review.
+When retrieving project facts for use as human-approved knowledge, add `--review-status approved` to the query. A legacy `verified_by=human` label alone is not evidence of an explicit review. If a query reports `pending_review` above zero, say in your handoff that those results are unreviewed.
 
 Cite the FDS record IDs and source values that support project-specific decisions. If no record supports a claim, say the information is missing and ask the human; do not guess. Strong and weak are lexical retrieval labels, not truth scores.
 

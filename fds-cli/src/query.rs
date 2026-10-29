@@ -34,6 +34,13 @@ const MIN_SHARED_TOKENS: usize = 2;
 /// query that is the heading should find the section, not only a shorter
 /// section that happens to repeat the words.
 const TITLE_WEIGHT: usize = 3;
+/// A fact or procedure whose whole question is contained in the query is very
+/// likely what was asked ("cafe menu items" for "What are the menu items?"), even
+/// when the query adds a word that a longer, less relevant question happens to
+/// share. Only a question contained *entirely* gets the boost: "pin 2 of the
+/// NE555" must not promote the neighbouring fact about pin 4, whose question it
+/// covers only in part. The score is multiplied by `1 + QUESTION_COVERAGE_BOOST`.
+const QUESTION_COVERAGE_BOOST: f32 = 1.0;
 /// Floor of the length normalisation, as a share of the average record length.
 const MIN_LEN_RATIO: f32 = 0.5;
 
@@ -536,6 +543,7 @@ impl Engine {
 
     fn bm25_top(&self, query: &str, allowed: &[usize], limit: usize) -> Vec<(usize, f32)> {
         let q = search_terms(query);
+        let q_set: HashSet<&String> = q.iter().collect();
         let n = self.searchable.len() as f32;
         let mut scored: Vec<(usize, f32)> = allowed
             .iter()
@@ -554,6 +562,14 @@ impl Engine {
                     let idf = ((n - df + 0.5) / (df + 0.5) + 1.0).ln();
                     s += idf * (tf * (BM25_K1 + 1.0))
                         / (tf + BM25_K1 * (1.0 - BM25_B + BM25_B * len / self.avg_len));
+                }
+                if s > 0.0 {
+                    if let Some(question) = &self.records[i].question {
+                        let terms: HashSet<String> = search_terms(question).into_iter().collect();
+                        if !terms.is_empty() && terms.iter().all(|t| q_set.contains(t)) {
+                            s *= 1.0 + QUESTION_COVERAGE_BOOST;
+                        }
+                    }
                 }
                 (s > 0.0).then_some((i, s))
             })
@@ -870,6 +886,23 @@ mod tests {
                 ),
             ],
         )
+    }
+
+    #[test]
+    fn a_question_the_query_contains_outranks_a_longer_one_sharing_a_word() {
+        let e = Engine::new(
+            DbMeta::default(),
+            vec![
+                fact("what are the cafe menu items draft", "model proposal"),
+                fact("what is the cafe visual identity", "colors"),
+                fact("what is the menu items for lantern house", "other cafe"),
+                fact("what are the menu items", "the real menu"),
+            ],
+        );
+        for q in ["cafe menu items", "cafe menu items prices availability"] {
+            let r = e.query(q, None, 400, None);
+            assert_eq!(r.records[0].body, "the real menu", "{q}");
+        }
     }
 
     #[test]

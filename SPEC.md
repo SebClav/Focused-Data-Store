@@ -355,7 +355,9 @@ fragment to fall back on. A compiled record returned from stage 2 is never
    and a file name or path finds the sections of that file. The length
    normalisation never treats a record as shorter than half the average one (the
    reference tool's choice), so a one-line section that only points at a table does
-   not outrank the table.
+   not outrank the table. A fact or procedure whose whole question is contained in the
+   query has its score doubled (also the reference tool's choice), so that "cafe menu
+   items" finds "What are the menu items?" before longer questions that share one word.
 3. **The keyword gate.** If BM25 matched nothing, stop: return `none` with no
    records. This step is REQUIRED. Vector search always returns the nearest
    record for any input whatsoever, so a pipeline that lets vectors decide

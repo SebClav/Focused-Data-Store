@@ -33,6 +33,13 @@
   "Should users delete records?" or "How can users delete records?" as `exact`.
   Seven new vectors; the Python suite runs 294 checks. The benchmark
   (`benchmark_v3`, S7) found this.
+- Retrieval: a fact or procedure whose whole question is contained in the query
+  now has its stage-2 score doubled. In the benchmark's 600-record fixture
+  "cafe menu items" did not return "What are the menu items?" at all and an
+  agent shipped an empty menu; it now ranks second. Calibration on 12 queries:
+  11 hits, from 10. "menu prices and availability" still misses: the words
+  share no term with the stored question or answer (`prices`/`price`,
+  `availability`/`available`), and stage 2 has no stemming.
 - `fds mcp --sectors` honoured no `--read-only`: an agent started read-only
   could still write with `fds_remember`. It now gets no memory tools.
 - `fds_remember` replaced a fact a person had verified when it was given the

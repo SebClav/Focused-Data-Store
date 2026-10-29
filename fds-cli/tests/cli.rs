@@ -191,3 +191,32 @@ fn importing_a_fact_that_replaces_another_warns_for_each() {
     assert_eq!(stderr.matches("warning: fact").count(), 1, "{stderr}");
     assert!(stderr.contains("Imported 2 facts"), "{stderr}");
 }
+
+#[test]
+fn a_negated_question_is_not_an_exact_match() {
+    let sandbox = Sandbox::new();
+    ok(&sandbox.fds(&["init", "t"]));
+    ok(&sandbox.fds(&[
+        "--db",
+        "t.fds",
+        "fact",
+        "add",
+        "Can users delete records?",
+        "Yes",
+    ]));
+
+    let confidence = |question: &str| {
+        let out = sandbox.fds(&["--db", "t.fds", "--json", "query", question]);
+        let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+        json["confidence"].as_str().unwrap().to_string()
+    };
+    assert_eq!(confidence("can users delete records"), "exact");
+    for negated in [
+        "Cannot users delete records?",
+        "Users can not delete records",
+        "Can't users delete records?",
+        "Do users not delete records?",
+    ] {
+        assert_ne!(confidence(negated), "exact", "{negated}");
+    }
+}

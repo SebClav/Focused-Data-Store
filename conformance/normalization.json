@@ -226,6 +226,27 @@
       "reference voltage",
       "reference current"
     ]
+,
+    [
+      "can users delete records",
+      "cannot users delete records"
+    ],
+    [
+      "can users delete records",
+      "can users not delete records"
+    ],
+    [
+      "is it allowed",
+      "is it not allowed"
+    ],
+    [
+      "abrir el menú",
+      "no abrir el menú"
+    ],
+    [
+      "café con azúcar",
+      "café sin azúcar"
+    ]
   ],
   "search_terms_description": "Search terms (SPEC.md section 4.1): the search fold of the text (NFKC, lower case, letter replacements such as ss for the German sharp s, invisible characters deleted, NFD, removable marks dropped, NFC), cut into runs of letters, numbers and marks that start at a letter or a number; runs of unspaced scripts (Han, kana, Hangul, Thai, Lao, Khmer, Myanmar) are cut into units and give, for unit i, the unit and the pair of units i and i+1; the stopwords (folded the same way) are removed. Stage 2 matches on these; stage 1 keeps `tokens` and `key` as they are. `search_fold` lists the fold alone, `same_terms` and `different_terms` compare two texts, and `matches` says whether every search term of `query` is among the search terms of `text` (and the query has at least one), which is what a keyword hit and the `strong` confidence need.",
   "search_terms": [
@@ -460,6 +481,37 @@
         "नमस\u094dत\u0947",
         "द\u0941न\u093fय\u093e"
       ]
+    },
+    {
+      "input": "do not delete the records",
+      "terms": [
+        "not",
+        "delete",
+        "records"
+      ]
+    },
+    {
+      "input": "No abrir el menú",
+      "terms": [
+        "no",
+        "abrir",
+        "menu"
+      ]
+    },
+    {
+      "input": "café sin azúcar",
+      "terms": [
+        "cafe",
+        "sin",
+        "azucar"
+      ]
+    },
+    {
+      "input": "cannot delete",
+      "terms": [
+        "cannot",
+        "delete"
+      ]
     }
   ],
   "same_terms": [
@@ -573,6 +625,14 @@
     ]
   ],
   "different_terms": [
+    [
+      "delete records",
+      "do not delete records"
+    ],
+    [
+      "abrir el menu",
+      "no abrir el menu"
+    ],
     [
       "horario",
       "horarios"

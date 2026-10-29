@@ -23,7 +23,6 @@ both
 but
 by
 can
-cannot
 could
 did
 do
@@ -63,9 +62,6 @@ more
 most
 my
 myself
-no
-nor
-not
 now
 of
 off
@@ -146,7 +142,6 @@ son
 por
 para
 con
-sin
 se
 su
 sus

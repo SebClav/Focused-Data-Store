@@ -64,6 +64,31 @@ pub fn fact_record(
     })
 }
 
+/// The stored fact that saving `incoming` would replace with a different
+/// answer, source or collection.
+///
+/// A fact's id comes from its question alone (SPEC.md §3.1), so the same
+/// question in another collection is the same fact, not a second one.
+pub fn replaced_fact<'a>(records: &'a [Record], incoming: &Record) -> Option<&'a Record> {
+    records.iter().find(|x| {
+        x.id == incoming.id
+            && x.kind == Kind::Fact
+            && (x.body != incoming.body
+                || x.source != incoming.source
+                || x.collection != incoming.collection)
+    })
+}
+
+/// The warning for a replacement found by [`replaced_fact`].
+pub fn replaced_warning(existing: &Record, incoming: &Record) -> String {
+    format!(
+        "warning: fact {} already exists in collection `{}` with a different answer or source; \
+         the new fact in `{}` replaces it. A question is one fact per database, whatever its \
+         collection; give an agent its own sector for separate knowledge.",
+        existing.id, existing.collection, incoming.collection
+    )
+}
+
 /// Adds a fact, or replaces the one with the same canonical question.
 /// Returns its stable id.
 pub fn upsert_fact(
@@ -82,13 +107,20 @@ pub fn upsert_fact(
     Ok(id)
 }
 
+/// What `import_facts` did.
+pub struct Imported {
+    pub count: usize,
+    /// One warning for each fact that replaced a different one.
+    pub warnings: Vec<String>,
+}
+
 /// Accepts `[{question, answer, source?}]` or the Phase 1 mask format
 /// `{"entries": [{canonical_query, answer, source?, last_verified?}]}`.
 pub fn import_facts(
     file: &Path,
     records: &mut Vec<Record>,
     collection: &str,
-) -> Result<usize, String> {
+) -> Result<Imported, String> {
     let text = std::fs::read_to_string(file).map_err(|e| format!("{}: {e}", file.display()))?;
     let v: Value = serde_json::from_str(&text)
         .map_err(|e| format!("{}: invalid JSON: {e}", file.display()))?;
@@ -98,6 +130,7 @@ pub fn import_facts(
         .or_else(|| v.as_array())
         .ok_or("expected a JSON array of facts, or an object with an `entries` array")?;
     let mut n = 0;
+    let mut warnings = Vec::new();
     for item in items {
         let q = item
             .get("question")
@@ -119,11 +152,15 @@ pub fn import_facts(
             .and_then(|x| x.as_str())
             .map(str::to_string)
             .unwrap_or_else(today);
-        upsert_fact(records, q, a, collection, source, "human", &date)
+        let fact = fact_record(q, a, collection, source, "human", &date)
             .map_err(|e| format!("fact #{}: {e}", n + 1))?;
+        if let Some(existing) = replaced_fact(records, &fact) {
+            warnings.push(replaced_warning(existing, &fact));
+        }
+        upsert(records, fact);
         n += 1;
     }
-    Ok(n)
+    Ok(Imported { count: n, warnings })
 }
 
 /// Procedures from a JSON file: one object or an array of them.
@@ -560,6 +597,50 @@ mod tests {
         assert_eq!(a, b, "same intent must keep the same stable id");
         assert_eq!(records.len(), 1);
         assert!(records[0].body.contains("ipconfig /flushdns"));
+    }
+
+    fn fact(question: &str, answer: &str, collection: &str, source: &str) -> Record {
+        fact_record(question, answer, collection, source, "human", "2026-10-29").unwrap()
+    }
+
+    #[test]
+    fn a_different_answer_to_the_same_question_replaces_a_fact() {
+        let stored = [fact("What is the port?", "443", "alpha", "s")];
+        let incoming = fact("what is the PORT", "8080", "alpha", "s");
+        assert_eq!(
+            replaced_fact(&stored, &incoming).map(|r| r.body.as_str()),
+            Some("443")
+        );
+    }
+
+    #[test]
+    fn the_same_question_in_another_collection_is_the_same_fact() {
+        // Identifiers come from the question alone (SPEC.md 3.1).
+        let stored = [fact("What is the port?", "443", "alpha", "s")];
+        let incoming = fact("What is the port?", "443", "beta", "s");
+        assert_eq!(stored[0].id, incoming.id);
+        assert!(replaced_fact(&stored, &incoming).is_some());
+        let warning = replaced_warning(&stored[0], &incoming);
+        assert!(
+            warning.contains("`alpha`") && warning.contains("`beta`"),
+            "{warning}"
+        );
+    }
+
+    #[test]
+    fn saving_the_same_fact_again_replaces_nothing_different() {
+        let stored = [fact("What is the port?", "443", "alpha", "s")];
+        assert!(replaced_fact(&stored, &fact("What is the port?", "443", "alpha", "s")).is_none());
+    }
+
+    #[test]
+    fn another_question_or_another_kind_is_not_replaced() {
+        let stored = [fact("What is the port?", "443", "alpha", "s")];
+        assert!(replaced_fact(&stored, &fact("What is the host?", "x", "alpha", "s")).is_none());
+        let mut procedure = stored[0].clone();
+        procedure.kind = Kind::Procedure;
+        let incoming = fact("What is the port?", "8080", "alpha", "s");
+        assert!(replaced_fact(&[procedure], &incoming).is_none());
     }
 
     #[test]

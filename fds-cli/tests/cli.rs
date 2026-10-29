@@ -128,3 +128,66 @@ fn mcp_is_read_only_unless_asked_to_write() {
     assert_eq!(out.status.code(), Some(1));
     assert!(text(&out.stderr).contains("--read-only prevents"));
 }
+
+#[test]
+fn a_fact_that_replaces_another_collections_answer_says_so() {
+    let sandbox = Sandbox::new();
+    ok(&sandbox.fds(&["init", "t"]));
+    ok(&sandbox.fds(&[
+        "--db",
+        "t.fds",
+        "fact",
+        "add",
+        "What is the port?",
+        "443",
+        "-c",
+        "alpha",
+    ]));
+
+    let out = sandbox.fds(&[
+        "--db",
+        "t.fds",
+        "fact",
+        "add",
+        "What is the port?",
+        "8080",
+        "-c",
+        "beta",
+    ]);
+    ok(&out);
+    let warning = text(&out.stderr);
+    assert!(warning.contains("warning: fact"), "{warning}");
+    assert!(
+        warning.contains("`alpha`") && warning.contains("`beta`"),
+        "{warning}"
+    );
+
+    // The identifier comes from the question alone, as SPEC.md 3.1 says: one fact.
+    let listing = text(&sandbox.fds(&["--db", "t.fds", "ls"]).stdout);
+    assert_eq!(listing.matches("what is the port").count(), 1, "{listing}");
+    assert!(listing.contains("beta"), "{listing}");
+}
+
+#[test]
+fn repeating_a_fact_unchanged_does_not_warn() {
+    let sandbox = Sandbox::with_database();
+    let out = sandbox.fds(&["--db", "t.fds", "fact", "add", "What is the port?", "443"]);
+    ok(&out);
+    assert!(text(&out.stderr).is_empty(), "{}", text(&out.stderr));
+}
+
+#[test]
+fn importing_a_fact_that_replaces_another_warns_for_each() {
+    let sandbox = Sandbox::with_database();
+    fs::write(
+        sandbox.path("facts.json"),
+        r#"[{"question": "What is the port?", "answer": "8080"},
+            {"question": "What is the host?", "answer": "example.test"}]"#,
+    )
+    .unwrap();
+    let out = sandbox.fds(&["--db", "t.fds", "fact", "import", "facts.json"]);
+    ok(&out);
+    let stderr = text(&out.stderr);
+    assert_eq!(stderr.matches("warning: fact").count(), 1, "{stderr}");
+    assert!(stderr.contains("Imported 2 facts"), "{stderr}");
+}

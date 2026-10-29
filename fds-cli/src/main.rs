@@ -36,7 +36,10 @@ use crate::cmd_audit::audit_cmd;
 use crate::cmd_journal::journal_cmd;
 use crate::cmd_policy::{check_cmd, policy_bounds};
 use crate::cmd_sector::sector_cmd;
-use crate::ops::{add_procedures, import_facts, record_json, upsert_fact};
+use crate::ops::{
+    add_procedures, fact_record, import_facts, record_json, replaced_fact, replaced_warning,
+    upsert_fact,
+};
 
 use crate::query::{Confidence, Engine};
 use crate::text::{now, today};
@@ -354,15 +357,11 @@ async fn run(cli: Cli) -> Result<u8, String> {
         }) => {
             let _lock = db::lock(&path)?;
             let (mut meta, mut records) = db::load(&path)?;
-            let id = upsert_fact(
-                &mut records,
-                &question,
-                &answer,
-                &collection,
-                &source,
-                "human",
-                &today(),
-            )?;
+            let fact = fact_record(&question, &answer, &collection, &source, "human", &today())?;
+            if let Some(existing) = replaced_fact(&records, &fact) {
+                eprintln!("{}", replaced_warning(existing, &fact));
+            }
+            let id = ops::upsert(&mut records, fact);
             db::save(&path, &mut meta, &records)?;
             if json_out {
                 print_json(&json!({"id": id}))
@@ -375,9 +374,15 @@ async fn run(cli: Cli) -> Result<u8, String> {
         Command::Fact(FactCmd::Import { file, collection }) => {
             let _lock = db::lock(&path)?;
             let (mut meta, mut records) = db::load(&path)?;
-            let n = import_facts(&file, &mut records, &collection)?;
+            let imported = import_facts(&file, &mut records, &collection)?;
             db::save(&path, &mut meta, &records)?;
-            eprintln!("Imported {n} facts into collection `{collection}`.");
+            for warning in &imported.warnings {
+                eprintln!("{warning}");
+            }
+            eprintln!(
+                "Imported {} facts into collection `{collection}`.",
+                imported.count
+            );
             warn_missing_embeddings(&meta, &records);
         }
 

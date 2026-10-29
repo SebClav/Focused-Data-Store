@@ -60,6 +60,13 @@ pub(crate) fn print_json(v: &Value) {
 async fn run(cli: Cli) -> Result<u8, String> {
     let json_out = cli.json;
 
+    if cli.read_only && cli.command.writes() {
+        return Err(
+            "--read-only prevents commands that create or modify a database, a sector or the audit file"
+                .into(),
+        );
+    }
+
     if let Command::Init { name } = &cli.command {
         let path = cli
             .db

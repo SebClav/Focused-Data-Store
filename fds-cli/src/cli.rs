@@ -22,6 +22,12 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub json: bool,
 
+    /// Refuse every command that creates or modifies a database, a sector or
+    /// the audit file. For an agent that runs this tool; it is not a
+    /// substitute for file permissions.
+    #[arg(long, global = true)]
+    pub read_only: bool,
+
     #[command(subcommand)]
     pub command: Command,
 }
@@ -222,6 +228,42 @@ pub enum Command {
     /// Sectors: one database per agent, plus shared ones it may read
     #[command(subcommand)]
     Sector(SectorCmd),
+}
+
+impl Command {
+    /// Whether the command creates or modifies a database, a sector or the
+    /// audit file, and so is refused under `--read-only`.
+    ///
+    /// `journal export` only writes a Markdown file and is allowed. `serve`
+    /// is refused because its manager and `/mcp` can write; `mcp` is refused
+    /// only with `--write`.
+    pub fn writes(&self) -> bool {
+        match self {
+            Command::Init { .. }
+            | Command::Add { .. }
+            | Command::Import { .. }
+            | Command::Fact(_)
+            | Command::Proc(_)
+            | Command::Log { .. }
+            | Command::Guard { .. }
+            | Command::Rm { .. }
+            | Command::Embed { .. }
+            | Command::Serve { .. } => true,
+            Command::Context(cmd) => {
+                matches!(cmd, ContextCmd::Set { .. } | ContextCmd::Import { .. })
+            }
+            Command::Journal(cmd) => matches!(cmd, JournalCmd::Publish { .. }),
+            Command::Policy(cmd) => matches!(cmd, PolicyCmd::Add { .. }),
+            Command::Sector(cmd) => !matches!(cmd, SectorCmd::Ls { .. }),
+            Command::Mcp { write, .. } => *write,
+            Command::Status
+            | Command::Check { .. }
+            | Command::Audit(_)
+            | Command::Ls { .. }
+            | Command::Show { .. }
+            | Command::Query { .. } => false,
+        }
+    }
 }
 
 #[derive(Subcommand)]
@@ -454,4 +496,95 @@ pub enum ProcCmd {
         #[arg(short, long, default_value = "default")]
         collection: String,
     },
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::Parser;
+
+    use super::Cli;
+
+    fn writes(args: &[&str]) -> bool {
+        let mut argv = vec!["fds"];
+        argv.extend_from_slice(args);
+        Cli::try_parse_from(argv)
+            .unwrap_or_else(|e| panic!("{args:?} does not parse: {e}"))
+            .command
+            .writes()
+    }
+
+    #[test]
+    fn every_command_that_changes_state_is_a_write() {
+        for args in [
+            &["init"][..],
+            &["add", "docs"],
+            &["import", "rows.csv"],
+            &["fact", "add", "q", "a"],
+            &["fact", "import", "facts.json"],
+            &["proc", "add", "procs.json"],
+            &["context", "set", "n", "--instructions", "t"],
+            &["context", "import", "AGENTS.md"],
+            &["log", "did a thing"],
+            &["journal", "publish"],
+            &[
+                "policy",
+                "add",
+                "text",
+                "--subject",
+                "s",
+                "--action",
+                "a",
+                "--rule",
+                "deny",
+            ],
+            &["guard", "--policies", "sectors.json", "--", "server"],
+            &["rm", "id"],
+            &["embed"],
+            &["serve"],
+            &["mcp", "--write"],
+            &["sector", "new", "sales"],
+            &["sector", "key", "sales"],
+            &["sector", "promote", "id", "--from", "a", "--to", "b"],
+        ] {
+            assert!(writes(args), "{args:?} should be a write");
+        }
+    }
+
+    #[test]
+    fn commands_that_only_read_are_not_writes() {
+        for args in [
+            &["status"][..],
+            &["check", "--subject", "s", "--action", "a"],
+            &["audit", "show"],
+            &["audit", "verify"],
+            &["ls"],
+            &["show", "id"],
+            &["query", "some", "words"],
+            &["context", "ls"],
+            &["context", "show", "n"],
+            &["context", "export", "n"],
+            &["journal", "show"],
+            &["journal", "export"],
+            &["policy", "ls"],
+            &["mcp"],
+            &["sector", "ls"],
+        ] {
+            assert!(!writes(args), "{args:?} should not be a write");
+        }
+    }
+
+    #[test]
+    fn the_flag_is_global_and_off_by_default() {
+        assert!(
+            Cli::try_parse_from(["fds", "--read-only", "status"])
+                .unwrap()
+                .read_only
+        );
+        assert!(
+            Cli::try_parse_from(["fds", "status", "--read-only"])
+                .unwrap()
+                .read_only
+        );
+        assert!(!Cli::try_parse_from(["fds", "status"]).unwrap().read_only);
+    }
 }

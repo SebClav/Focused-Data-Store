@@ -41,6 +41,32 @@ const TITLE_WEIGHT: usize = 3;
 /// NE555" must not promote the neighbouring fact about pin 4, whose question it
 /// covers only in part. The score is multiplied by `1 + QUESTION_COVERAGE_BOOST`.
 const QUESTION_COVERAGE_BOOST: f32 = 1.0;
+/// A query term that no word of a record matches exactly still counts, at this
+/// share of its weight, for a record word that is a form of it: `prices` for
+/// `price`, `availability` for `available`. Stage 2 has no stemmer (the search
+/// terms are normative, SPEC.md §4.1); this is a ranking choice of the reference
+/// tool and never changes which terms a query has, so it cannot make a record
+/// `strong` or `exact`.
+const RELATED_TERM_WEIGHT: f32 = 0.5;
+
+/// Whether two different terms are forms of one word: one is the other plus a
+/// plural ending, or the shorter has at least eight letters and they share all but
+/// its last two.
+fn related_terms(a: &str, b: &str) -> bool {
+    if a == b {
+        return false;
+    }
+    let (short, long) = if a.chars().count() <= b.chars().count() { (a, b) } else { (b, a) };
+    if short.chars().count() >= 3
+        && (long == format!("{short}s") || long == format!("{short}es"))
+    {
+        return true;
+    }
+    let common = short.chars().zip(long.chars()).take_while(|(x, y)| x == y).count();
+    let len = short.chars().count();
+    len >= 8 && common >= len - 2
+}
+
 /// Floor of the length normalisation, as a share of the average record length.
 const MIN_LEN_RATIO: f32 = 0.5;
 
@@ -554,13 +580,18 @@ impl Engine {
                 let len = (doc.len() as f32).max(MIN_LEN_RATIO * self.avg_len);
                 let mut s = 0.0f32;
                 for qt in &q {
-                    let tf = doc.iter().filter(|t| *t == qt).count() as f32;
+                    let mut tf = doc.iter().filter(|t| *t == qt).count() as f32;
+                    let mut weight = 1.0;
+                    if tf == 0.0 {
+                        tf = doc.iter().filter(|t| related_terms(qt, t)).count() as f32;
+                        weight = RELATED_TERM_WEIGHT;
+                    }
                     if tf == 0.0 {
                         continue;
                     }
                     let df = *self.doc_freq.get(qt).unwrap_or(&0) as f32;
                     let idf = ((n - df + 0.5) / (df + 0.5) + 1.0).ln();
-                    s += idf * (tf * (BM25_K1 + 1.0))
+                    s += weight * idf * (tf * (BM25_K1 + 1.0))
                         / (tf + BM25_K1 * (1.0 - BM25_B + BM25_B * len / self.avg_len));
                 }
                 if s > 0.0 {
@@ -903,6 +934,27 @@ mod tests {
             let r = e.query(q, None, 400, None);
             assert_eq!(r.records[0].body, "the real menu", "{q}");
         }
+    }
+
+    #[test]
+    fn related_forms_match_at_a_lower_weight() {
+        assert!(related_terms("prices", "price"));
+        assert!(related_terms("availability", "available"));
+        assert!(related_terms("items", "item"));
+        assert!(!related_terms("price", "price"));
+        assert!(!related_terms("menu", "mental"));
+        assert!(!related_terms("cafe", "cafes_x"));
+        let e = Engine::new(
+            DbMeta::default(),
+            vec![
+                fact("what are the opening hours", "9 to 5"),
+                fact("what is the refund policy", "30 days"),
+            ],
+        );
+        let r = e.query("refunds", None, 400, None);
+        assert_eq!(r.records[0].body, "30 days");
+        // A related form alone never makes a record strong.
+        assert_ne!(r.confidence, Confidence::Strong);
     }
 
     #[test]

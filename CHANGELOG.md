@@ -37,9 +37,10 @@
   now has its stage-2 score doubled. In the benchmark's 600-record fixture
   "cafe menu items" did not return "What are the menu items?" at all and an
   agent shipped an empty menu; it now ranks second. Calibration on 12 queries:
-  11 hits, from 10. "menu prices and availability" still misses: the words
-  share no term with the stored question or answer (`prices`/`price`,
-  `availability`/`available`), and stage 2 has no stemming.
+  11 hits, from 10. A query term that no word of a record matches exactly now
+  also counts, at half weight, for a plural or a close form of it (`prices` for
+  `price`, `availability` for `available`). It is a ranking choice, not a change
+  to the search terms, so it cannot make a record `strong`; calibration is 12 of 12.
 - `fds mcp --sectors` honoured no `--read-only`: an agent started read-only
   could still write with `fds_remember`. It now gets no memory tools.
 - `fds_remember` replaced a fact a person had verified when it was given the

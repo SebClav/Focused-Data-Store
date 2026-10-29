@@ -1,0 +1,1703 @@
+{
+  "embed_model": null,
+  "domains": {
+    "electronics": {
+      "lang": "en",
+      "records": 25,
+      "base_tokens": 298,
+      "modes": {
+        "keyword": {
+          "all": {
+            "n": 75,
+            "hit1": 72.0,
+            "hit5": 85.3,
+            "mrr": 0.782,
+            "direct": 33.3,
+            "direct_precision": 100.0,
+            "false_none": 4.0,
+            "tokens_mean": 29.9,
+            "ood_n": 12,
+            "ood_near_rejected": 66.7,
+            "ood_near_direct": 0.0,
+            "ood_far_rejected": 100.0,
+            "ood_far_direct": 0.0
+          },
+          "tier1": {
+            "n": 25,
+            "hit1": 100.0,
+            "hit5": 100.0,
+            "mrr": 1.0,
+            "direct": 100.0,
+            "direct_precision": 100.0,
+            "false_none": 0.0,
+            "tokens_mean": 11.9
+          },
+          "tier2": {
+            "n": 25,
+            "hit1": 68.0,
+            "hit5": 88.0,
+            "mrr": 0.773,
+            "direct": 0.0,
+            "direct_precision": null,
+            "false_none": 0.0,
+            "tokens_mean": 36.8
+          },
+          "tier3": {
+            "n": 25,
+            "hit1": 48.0,
+            "hit5": 68.0,
+            "mrr": 0.573,
+            "direct": 0.0,
+            "direct_precision": null,
+            "false_none": 12.0,
+            "tokens_mean": 41
+          },
+          "seconds": 1.2,
+          "misses": [
+            {
+              "q": "what voltage does the LM317 keep between its output and adjust pins",
+              "tier": 2,
+              "got": "lm7805 output voltage",
+              "conf": "weak"
+            },
+            {
+              "q": "how do I pick R1 and R2 for 9 V out of the adjustable regulator",
+              "tier": 3,
+              "got": "voltage divider formula",
+              "conf": "weak"
+            },
+            {
+              "q": "will the 78xx five volt regulator be enough for my board",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "which resistors make the 555 blink at 1 Hz",
+              "tier": 3,
+              "got": "resistors in parallel total resistance",
+              "conf": "weak"
+            },
+            {
+              "q": "can this small NPN drive a 300 mA relay coil",
+              "tier": 3,
+              "got": "usb 2 0 port current limit",
+              "conf": "weak"
+            },
+            {
+              "q": "highest crystal speed for the atmega328",
+              "tier": 2,
+              "got": "i2c standard mode speed",
+              "conf": "weak"
+            },
+            {
+              "q": "which pullups should SDA and SCL use",
+              "tier": 2,
+              "got": "3 3 v and 5 v level shifting",
+              "conf": "weak"
+            },
+            {
+              "q": "my sensor bus is unstable at 400 kHz",
+              "tier": 3,
+              "got": "i2c standard mode speed",
+              "conf": "weak"
+            },
+            {
+              "q": "what clock rates does I2C support",
+              "tier": 2,
+              "got": "atmega328p maximum clock frequency",
+              "conf": "weak"
+            },
+            {
+              "q": "which wire selects the slave device on the four-wire bus",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "what bypass capacitor goes next to a microcontroller",
+              "tier": 2,
+              "got": "electrolytic capacitor polarity marking",
+              "conf": "weak"
+            },
+            {
+              "q": "my MCU resets randomly when the motor starts",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "relation between voltage current and resistance",
+              "tier": 2,
+              "got": "1n4007 diode maximum reverse voltage",
+              "conf": "weak"
+            },
+            {
+              "q": "how much current flows through a 1k resistor at 5 V",
+              "tier": 3,
+              "got": "3 3 v and 5 v level shifting",
+              "conf": "weak"
+            },
+            {
+              "q": "two 10 uF caps one after the other give how much",
+              "tier": 3,
+              "got": "resistors in parallel total resistance",
+              "conf": "weak"
+            },
+            {
+              "q": "will 2.5 V be read as a one by a 74LS chip",
+              "tier": 3,
+              "got": "3 3 v and 5 v level shifting",
+              "conf": "weak"
+            },
+            {
+              "q": "will the esp32 pins survive 5 V signals",
+              "tier": 3,
+              "got": "lm7805 output voltage",
+              "conf": "weak"
+            },
+            {
+              "q": "calculate the output of a resistor divider",
+              "tier": 2,
+              "got": "3 3 v and 5 v level shifting",
+              "conf": "weak"
+            },
+            {
+              "q": "get 3.3 V from 5 V with two resistors",
+              "tier": 3,
+              "got": "3 3 v and 5 v level shifting",
+              "conf": "weak"
+            },
+            {
+              "q": "minimum input voltage for a 7805",
+              "tier": 2,
+              "got": "ttl logic high input threshold",
+              "conf": "weak"
+            },
+            {
+              "q": "can I feed the 5 V regulator from a 6 V battery",
+              "tier": 3,
+              "got": "3 3 v and 5 v level shifting",
+              "conf": "weak"
+            }
+          ],
+          "ood_answers": [
+            {
+              "q": "how does a mosfet h-bridge work",
+              "kind": "near",
+              "conf": "weak",
+              "got": "3 3 v and 5 v level shifting"
+            },
+            {
+              "q": "stepper motor driver current setting",
+              "kind": "near",
+              "conf": "weak",
+              "got": "2n2222 maximum collector current"
+            },
+            {
+              "q": "buck converter efficiency",
+              "kind": "near",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "esp32 wifi range",
+              "kind": "near",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "design a pcb trace antenna",
+              "kind": "near",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "op amp slew rate meaning",
+              "kind": "near",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "what is the capital of paraguay",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "best pizza dough recipe",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "who won the 2022 world cup",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "translate good morning to french",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "how tall is mount everest",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "write a poem about the sea",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            }
+          ]
+        }
+      }
+    },
+    "linux": {
+      "lang": "en",
+      "records": 30,
+      "base_tokens": 395,
+      "modes": {
+        "keyword": {
+          "all": {
+            "n": 90,
+            "hit1": 52.2,
+            "hit5": 60.0,
+            "mrr": 0.557,
+            "direct": 32.2,
+            "direct_precision": 100.0,
+            "false_none": 16.7,
+            "tokens_mean": 21.9,
+            "ood_n": 14,
+            "ood_near_rejected": 50.0,
+            "ood_near_direct": 0.0,
+            "ood_far_rejected": 83.3,
+            "ood_far_direct": 0.0
+          },
+          "tier1": {
+            "n": 30,
+            "hit1": 100.0,
+            "hit5": 100.0,
+            "mrr": 1.0,
+            "direct": 96.7,
+            "direct_precision": 100.0,
+            "false_none": 0.0,
+            "tokens_mean": 14.8
+          },
+          "tier2": {
+            "n": 30,
+            "hit1": 40.0,
+            "hit5": 50.0,
+            "mrr": 0.439,
+            "direct": 0.0,
+            "direct_precision": null,
+            "false_none": 20.0,
+            "tokens_mean": 27.9
+          },
+          "tier3": {
+            "n": 30,
+            "hit1": 16.7,
+            "hit5": 30.0,
+            "mrr": 0.233,
+            "direct": 0.0,
+            "direct_precision": null,
+            "false_none": 30.0,
+            "tokens_mean": 22.9
+          },
+          "cross_lingual": {
+            "n": 15,
+            "hit1": 33.3,
+            "hit5": 40.0,
+            "mrr": 0.367,
+            "direct": 0.0,
+            "direct_precision": null,
+            "false_none": 60.0,
+            "tokens_mean": 6.9
+          },
+          "seconds": 1.6,
+          "misses": [
+            {
+              "q": "display every file in the directory, even the dotfiles",
+              "tier": 2,
+              "got": "change file permissions",
+              "conf": "weak"
+            },
+            {
+              "q": "my .env file doesn't show up when I look at the folder contents",
+              "tier": 3,
+              "got": "show the size of a folder",
+              "conf": "weak"
+            },
+            {
+              "q": "how much free space is left on my drives",
+              "tier": 2,
+              "got": "show memory usage",
+              "conf": "weak"
+            },
+            {
+              "q": "the server says no space left on device",
+              "tier": 3,
+              "got": "connect to a remote server over ssh",
+              "conf": "weak"
+            },
+            {
+              "q": "how big is this directory in total",
+              "tier": 2,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "which of my project folders is eating all the space",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "locate a file somewhere on the system when I only know its filename",
+              "tier": 2,
+              "got": "check the system uptime",
+              "conf": "weak"
+            },
+            {
+              "q": "I saved config.yaml somewhere and can't remember where",
+              "tier": 3,
+              "got": "generate an ssh key pair",
+              "conf": "weak"
+            },
+            {
+              "q": "which source file mentions the function parse_header",
+              "tier": 3,
+              "got": "change file permissions",
+              "conf": "weak"
+            },
+            {
+              "q": "list every program currently executing",
+              "tier": 2,
+              "got": "list files including hidden ones",
+              "conf": "weak"
+            },
+            {
+              "q": "firefox froze and won't close",
+              "tier": 3,
+              "got": "generate an ssh key pair",
+              "conf": "weak"
+            },
+            {
+              "q": "the machine feels slow, is it out of RAM",
+              "tier": 3,
+              "got": "show the ip addresses of this machine",
+              "conf": "weak"
+            },
+            {
+              "q": "how long has the machine been up since boot",
+              "tier": 2,
+              "got": "show the ip addresses of this machine",
+              "conf": "weak"
+            },
+            {
+              "q": "when did this server last reboot",
+              "tier": 3,
+              "got": "follow the last lines of a log file",
+              "conf": "weak"
+            },
+            {
+              "q": "which address should my colleague use to reach my laptop on the LAN",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "is google reachable from here",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "something is already using port 8080",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "fetch a file over http from the terminal",
+              "tier": 2,
+              "got": "change file permissions",
+              "conf": "weak"
+            },
+            {
+              "q": "grab the installer from this link without a browser",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "unpack a tarball",
+              "tier": 2,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "compress a directory into a tarball",
+              "tier": 2,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "bundle my photos folder into one file to send",
+              "tier": 3,
+              "got": "show the size of a folder",
+              "conf": "weak"
+            },
+            {
+              "q": "make a script executable",
+              "tier": 2,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "permission denied when I run ./deploy.sh",
+              "tier": 3,
+              "got": "show the size of a folder",
+              "conf": "weak"
+            },
+            {
+              "q": "give ownership of a directory to another user",
+              "tier": 2,
+              "got": "add a new user",
+              "conf": "weak"
+            },
+            {
+              "q": "the web server can't write to uploads because root owns it",
+              "tier": 3,
+              "got": "generate an ssh key pair",
+              "conf": "weak"
+            },
+            {
+              "q": "create a login account for a colleague",
+              "tier": 2,
+              "got": "create a tar gz archive of a folder",
+              "conf": "weak"
+            },
+            {
+              "q": "bring this ubuntu box up to date with the latest security fixes",
+              "tier": 3,
+              "got": "install a package on ubuntu",
+              "conf": "weak"
+            },
+            {
+              "q": "I need htop on this server",
+              "tier": 3,
+              "got": "connect to a remote server over ssh",
+              "conf": "weak"
+            },
+            {
+              "q": "reload nginx after changing its config",
+              "tier": 2,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "the web server is stuck, bounce it",
+              "tier": 3,
+              "got": "connect to a remote server over ssh",
+              "conf": "weak"
+            },
+            {
+              "q": "read the journal for nginx",
+              "tier": 2,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "why did my app crash overnight, where are its messages",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "run a script automatically every night",
+              "tier": 2,
+              "got": "check the system uptime",
+              "conf": "weak"
+            },
+            {
+              "q": "back up the database at 2am daily without me",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "transfer a file to another machine over ssh",
+              "tier": 2,
+              "got": "connect to a remote server over ssh",
+              "conf": "weak"
+            },
+            {
+              "q": "put report.pdf on the office server",
+              "tier": 3,
+              "got": "connect to a remote server over ssh",
+              "conf": "weak"
+            },
+            {
+              "q": "log into another machine from the terminal",
+              "tier": 2,
+              "got": "follow the last lines of a log file",
+              "conf": "weak"
+            },
+            {
+              "q": "open a shell on the raspberry pi from my laptop",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "see new syslog entries as they arrive",
+              "tier": 3,
+              "got": "add a new user",
+              "conf": "weak"
+            },
+            {
+              "q": "how many rows are in this csv",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "which linux kernel am I running",
+              "tier": 2,
+              "got": "show the running processes",
+              "conf": "weak"
+            },
+            {
+              "q": "I plugged in a pendrive but can't see its files",
+              "tier": 3,
+              "got": "generate an ssh key pair",
+              "conf": "weak"
+            },
+            {
+              "q": "listar los archivos incluyendo los ocultos",
+              "tier": "cross",
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "mostrar el uso de disco de cada sistema de archivos",
+              "tier": "cross",
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "ver el tamaño de una carpeta",
+              "tier": "cross",
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "buscar archivos por nombre",
+              "tier": "cross",
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "buscar texto dentro de archivos",
+              "tier": "cross",
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "mostrar los procesos en ejecución",
+              "tier": "cross",
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "mostrar el uso de memoria",
+              "tier": "cross",
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "mostrar los puertos de red que escuchan",
+              "tier": "cross",
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "agregar un usuario nuevo",
+              "tier": "cross",
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "generar un par de claves ssh",
+              "tier": "cross",
+              "got": "connect to a remote server over ssh",
+              "conf": "weak"
+            }
+          ],
+          "ood_answers": [
+            {
+              "q": "compile the linux kernel from source",
+              "kind": "near",
+              "conf": "weak",
+              "got": "show the kernel version"
+            },
+            {
+              "q": "configure a software raid array",
+              "kind": "near",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "set up a vpn with wireguard",
+              "kind": "near",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "resize a logical volume",
+              "kind": "near",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "change the hostname of the machine",
+              "kind": "near",
+              "conf": "weak",
+              "got": "show the ip addresses of this machine"
+            },
+            {
+              "q": "set the system timezone",
+              "kind": "near",
+              "conf": "weak",
+              "got": "check the system uptime"
+            },
+            {
+              "q": "create a swap file",
+              "kind": "near",
+              "conf": "weak",
+              "got": "create a tar gz archive of a folder"
+            },
+            {
+              "q": "enable the ufw firewall",
+              "kind": "near",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "what is the capital of paraguay",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "best pizza dough recipe",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "who won the 2022 world cup",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "translate good morning to french",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "how tall is mount everest",
+              "kind": "far",
+              "conf": "weak",
+              "got": "mount a usb drive"
+            },
+            {
+              "q": "write a poem about the sea",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            }
+          ]
+        }
+      }
+    },
+    "runbook": {
+      "lang": "es",
+      "records": 24,
+      "base_tokens": 417,
+      "modes": {
+        "keyword": {
+          "all": {
+            "n": 72,
+            "hit1": 70.8,
+            "hit5": 81.9,
+            "mrr": 0.758,
+            "direct": 33.3,
+            "direct_precision": 100.0,
+            "false_none": 11.1,
+            "tokens_mean": 25.5,
+            "ood_n": 10,
+            "ood_near_rejected": 16.7,
+            "ood_near_direct": 0.0,
+            "ood_far_rejected": 100.0,
+            "ood_far_direct": 0.0
+          },
+          "tier1": {
+            "n": 24,
+            "hit1": 100.0,
+            "hit5": 100.0,
+            "mrr": 1.0,
+            "direct": 100.0,
+            "direct_precision": 100.0,
+            "false_none": 0.0,
+            "tokens_mean": 17.4
+          },
+          "tier2": {
+            "n": 24,
+            "hit1": 66.7,
+            "hit5": 83.3,
+            "mrr": 0.743,
+            "direct": 0.0,
+            "direct_precision": null,
+            "false_none": 8.3,
+            "tokens_mean": 33.2
+          },
+          "tier3": {
+            "n": 24,
+            "hit1": 45.8,
+            "hit5": 62.5,
+            "mrr": 0.531,
+            "direct": 0.0,
+            "direct_precision": null,
+            "false_none": 25.0,
+            "tokens_mean": 25.9
+          },
+          "seconds": 1.2,
+          "misses": [
+            {
+              "q": "salió el arreglo de facturación y hay que ponerlo en vivo",
+              "tier": 3,
+              "got": "cierre del periodo de facturación mensual",
+              "conf": "weak"
+            },
+            {
+              "q": "deshacer el deploy que rompió el tracking",
+              "tier": 2,
+              "got": "renovar el certificado del servidor api andina pe",
+              "conf": "weak"
+            },
+            {
+              "q": "el rastreo empezó a dar errores 500 después de la publicación de hoy",
+              "tier": 3,
+              "got": "cierre del periodo de facturación mensual",
+              "conf": "weak"
+            },
+            {
+              "q": "la zebra de la bodega 2 no imprime, cómo la reinicio",
+              "tier": 2,
+              "got": "actualizar el firmware de los escáneres del almacén",
+              "conf": "weak"
+            },
+            {
+              "q": "un chofer olvidó su clave de la aplicación",
+              "tier": 2,
+              "got": "wifi para visitas en la oficina",
+              "conf": "weak"
+            },
+            {
+              "q": "los cobros con tarjeta están fallando y nadie contesta",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "qué le doy al cliente si su paquete llegó tarde",
+              "tier": 2,
+              "got": "crear una api key para un cliente",
+              "conf": "weak"
+            },
+            {
+              "q": "un cliente reclama porque su carga llegó cinco días después",
+              "tier": 3,
+              "got": "crear una api key para un cliente",
+              "conf": "weak"
+            },
+            {
+              "q": "el consultor contratado no puede entrar a la red interna desde su casa",
+              "tier": 3,
+              "got": "wifi para visitas en la oficina",
+              "conf": "weak"
+            },
+            {
+              "q": "subir la versión del firmware de las pistolas lectoras",
+              "tier": 2,
+              "got": "reembolso de gastos de viaje de negocios",
+              "conf": "weak"
+            },
+            {
+              "q": "los lectores de código de barras de Lima tienen un bug conocido",
+              "tier": 3,
+              "got": "reembolso de gastos de viaje de negocios",
+              "conf": "weak"
+            },
+            {
+              "q": "volví de Arequipa con los recibos, cómo cobro lo que gasté",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "los clientes siguen viendo el estado viejo de su paquete en la web",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "vienen unos clientes a la reunión y necesitan conectarse",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "protocolo cuando un chofer choca",
+              "tier": 2,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "el cliente necesita el paquete mañana sin falta y ya salió",
+              "tier": 3,
+              "got": "crear una api key para un cliente",
+              "conf": "weak"
+            },
+            {
+              "q": "hasta cuándo puedo ajustar facturas del mes",
+              "tier": 2,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "me di cuenta de un error en una factura de este mes, ¿aún se puede corregir?",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "a qué hora se hace el backup del tracking",
+              "tier": 2,
+              "got": "cierre del periodo de facturación mensual",
+              "conf": "weak"
+            },
+            {
+              "q": "borré datos del rastreo ayer, ¿hasta cuándo puedo recuperarlos?",
+              "tier": 3,
+              "got": "hacer failover de la base de datos de pedidos",
+              "conf": "weak"
+            },
+            {
+              "q": "no encuentro mi fotocheck desde el viernes",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            }
+          ],
+          "ood_answers": [
+            {
+              "q": "cuál es el sueldo del gerente de operaciones",
+              "kind": "near",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "cómo despliego el servicio de nómina a producción",
+              "kind": "near",
+              "conf": "weak",
+              "got": "desplegar el servicio de facturación a producción"
+            },
+            {
+              "q": "quién es el jefe del equipo de seguridad de la información",
+              "kind": "near",
+              "conf": "weak",
+              "got": "acceso vpn para contratistas nuevos"
+            },
+            {
+              "q": "cuál es la política de trabajo remoto",
+              "kind": "near",
+              "conf": "weak",
+              "got": "política de solicitud de vacaciones"
+            },
+            {
+              "q": "cómo reinicio la impresora de etiquetas de la bodega 5",
+              "kind": "near",
+              "conf": "weak",
+              "got": "reiniciar la cola de la impresora de etiquetas"
+            },
+            {
+              "q": "cuánto es el tope de viáticos en el extranjero",
+              "kind": "near",
+              "conf": "weak",
+              "got": "reembolso de gastos de viaje de negocios"
+            },
+            {
+              "q": "cuál es la capital de Paraguay",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "dame una receta de ceviche",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "quién ganó el mundial 2022",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "cuánto mide el Everest",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            }
+          ]
+        }
+      }
+    },
+    "soporte": {
+      "lang": "es",
+      "records": 30,
+      "base_tokens": 437,
+      "modes": {
+        "keyword": {
+          "all": {
+            "n": 90,
+            "hit1": 53.3,
+            "hit5": 62.2,
+            "mrr": 0.571,
+            "direct": 34.4,
+            "direct_precision": 96.8,
+            "false_none": 22.2,
+            "tokens_mean": 22.0,
+            "ood_n": 14,
+            "ood_near_rejected": 12.5,
+            "ood_near_direct": 0.0,
+            "ood_far_rejected": 66.7,
+            "ood_far_direct": 0.0
+          },
+          "tier1": {
+            "n": 30,
+            "hit1": 100.0,
+            "hit5": 100.0,
+            "mrr": 1.0,
+            "direct": 100.0,
+            "direct_precision": 100.0,
+            "false_none": 0.0,
+            "tokens_mean": 14.6
+          },
+          "tier2": {
+            "n": 30,
+            "hit1": 43.3,
+            "hit5": 60.0,
+            "mrr": 0.506,
+            "direct": 0.0,
+            "direct_precision": null,
+            "false_none": 26.7,
+            "tokens_mean": 28
+          },
+          "tier3": {
+            "n": 30,
+            "hit1": 16.7,
+            "hit5": 26.7,
+            "mrr": 0.208,
+            "direct": 3.3,
+            "direct_precision": 0.0,
+            "false_none": 40.0,
+            "tokens_mean": 23.6
+          },
+          "seconds": 1.4,
+          "misses": [
+            {
+              "q": "a qué hora abren y cierran",
+              "tier": 2,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "puedo llamar un domingo en la tarde",
+              "tier": 3,
+              "got": "puedo pagar en cuotas",
+              "conf": "weak"
+            },
+            {
+              "q": "quiero poner una clave nueva",
+              "tier": 2,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "creo que alguien conoce mi clave, cómo la renuevo",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "no me acuerdo de la clave para entrar",
+              "tier": 2,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "en cuántos días llega un pedido a Arequipa",
+              "tier": 2,
+              "got": "dónde están sus tiendas físicas",
+              "conf": "weak"
+            },
+            {
+              "q": "compré hoy, para cuándo lo tengo en Cusco",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "precio del delivery",
+              "tier": 2,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "me cobran algo por traerlo a mi casa",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "no me gustaron las zapatillas, las puedo regresar",
+              "tier": 3,
+              "got": "puedo pagar en cuotas",
+              "conf": "weak"
+            },
+            {
+              "q": "en cuánto tiempo me devuelven el dinero",
+              "tier": 2,
+              "got": "cuál es el tiempo de respuesta del chat",
+              "conf": "weak"
+            },
+            {
+              "q": "ya devolví el producto y todavía no veo la plata",
+              "tier": 3,
+              "got": "me llegó un producto equivocado",
+              "conf": "weak"
+            },
+            {
+              "q": "puedo pagar con yape",
+              "tier": 2,
+              "got": "puedo pagar en cuotas",
+              "conf": "weak"
+            },
+            {
+              "q": "no tengo tarjeta, cómo compro",
+              "tier": 3,
+              "got": "qué hago si el pago fue rechazado",
+              "conf": "weak"
+            },
+            {
+              "q": "quiero comprar la laptop pero pagarla en partes",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "dónde está mi paquete",
+              "tier": 3,
+              "got": "cómo hago una devolución",
+              "conf": "strong"
+            },
+            {
+              "q": "me mudé, quiero que lo lleven a otra dirección",
+              "tier": 2,
+              "got": "cómo actualizo mis datos personales",
+              "conf": "weak"
+            },
+            {
+              "q": "puse mal mi casa al comprar",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "anular una compra que acabo de hacer",
+              "tier": 2,
+              "got": "cómo uso un cupón de descuento",
+              "conf": "weak"
+            },
+            {
+              "q": "ya no quiero lo que pedí hace una hora",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "mi empresa necesita el comprobante para contabilidad",
+              "tier": 3,
+              "got": "me cobraron dos veces",
+              "conf": "weak"
+            },
+            {
+              "q": "quiero ver el producto en persona antes de comprar",
+              "tier": 3,
+              "got": "me llegó un producto equivocado",
+              "conf": "weak"
+            },
+            {
+              "q": "necesito hablar con alguien de ustedes",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "el televisor vino roto",
+              "tier": 2,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "la caja llegó aplastada y la pantalla está rajada",
+              "tier": 3,
+              "got": "me llegó un producto equivocado",
+              "conf": "weak"
+            },
+            {
+              "q": "me enviaron otro modelo del que pedí",
+              "tier": 2,
+              "got": "qué hago si el pago fue rechazado",
+              "conf": "weak"
+            },
+            {
+              "q": "dónde pongo el código promocional",
+              "tier": 2,
+              "got": "cómo rastreo mi pedido",
+              "conf": "weak"
+            },
+            {
+              "q": "tengo el código BIENVENIDA10 y no sé dónde va",
+              "tier": 3,
+              "got": "cómo rastreo mi pedido",
+              "conf": "weak"
+            },
+            {
+              "q": "envían a Chile",
+              "tier": 2,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "vivo en Bogotá, me lo pueden mandar",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "quiero recibir sus ofertas por correo",
+              "tier": 2,
+              "got": "cuándo recibo mi reembolso",
+              "conf": "weak"
+            },
+            {
+              "q": "avísenme de las promociones",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "dar de baja mi usuario",
+              "tier": 2,
+              "got": "cómo me suscribo al boletín",
+              "conf": "weak"
+            },
+            {
+              "q": "borren todos mis datos de su sistema",
+              "tier": 3,
+              "got": "cómo actualizo mis datos personales",
+              "conf": "weak"
+            },
+            {
+              "q": "sale error al pagar y no se completa la compra",
+              "tier": 3,
+              "got": "cómo uso un cupón de descuento",
+              "conf": "weak"
+            },
+            {
+              "q": "en mi estado de cuenta aparece la compra repetida",
+              "tier": 3,
+              "got": "cómo rastreo mi pedido",
+              "conf": "weak"
+            },
+            {
+              "q": "me casé y quiero poner mi nuevo apellido",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "dónde presento un reclamo formal",
+              "tier": 2,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "quiero quejarme oficialmente del servicio",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "prefiero pasar yo mismo a buscarlo",
+              "tier": 3,
+              "got": "cuándo recibo mi reembolso",
+              "conf": "weak"
+            },
+            {
+              "q": "hay disponibilidad del modelo",
+              "tier": 2,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "escribí hace rato y nadie me responde",
+              "tier": 3,
+              "got": "",
+              "conf": "none"
+            }
+          ],
+          "ood_answers": [
+            {
+              "q": "venden seguros para celular",
+              "kind": "near",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "tienen vacantes de trabajo, cómo postulo",
+              "kind": "near",
+              "conf": "weak",
+              "got": "qué garantía tienen los productos"
+            },
+            {
+              "q": "hacen instalación de aire acondicionado",
+              "kind": "near",
+              "conf": "weak",
+              "got": "hacen envíos internacionales"
+            },
+            {
+              "q": "cuál es el horario del banco",
+              "kind": "near",
+              "conf": "weak",
+              "got": "cuál es el tiempo de respuesta del chat"
+            },
+            {
+              "q": "tienen servicio técnico a domicilio",
+              "kind": "near",
+              "conf": "weak",
+              "got": "cómo contacto a soporte técnico"
+            },
+            {
+              "q": "puedo vender mis productos en su tienda",
+              "kind": "near",
+              "conf": "weak",
+              "got": "puedo recoger mi pedido en tienda"
+            },
+            {
+              "q": "aceptan criptomonedas",
+              "kind": "near",
+              "conf": "weak",
+              "got": "qué medios de pago aceptan"
+            },
+            {
+              "q": "tienen tarjeta de regalo",
+              "kind": "near",
+              "conf": "weak",
+              "got": "qué hago si el pago fue rechazado"
+            },
+            {
+              "q": "cuál es la capital de Paraguay",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "receta de ceviche",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "quién ganó el mundial 2022",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "cómo estará el clima mañana",
+              "kind": "far",
+              "conf": "weak",
+              "got": "puedo recoger mi pedido en tienda"
+            },
+            {
+              "q": "traduce buenos días al inglés",
+              "kind": "far",
+              "conf": "weak",
+              "got": "cuánto tarda el envío a provincias"
+            },
+            {
+              "q": "cuánto mide el Everest",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            }
+          ]
+        }
+      }
+    },
+    "winops": {
+      "lang": "en",
+      "records": 45,
+      "base_tokens": 669,
+      "modes": {
+        "keyword": {
+          "all": {
+            "n": 135,
+            "hit1": 70.4,
+            "hit5": 84.4,
+            "mrr": 0.762,
+            "direct": 35.6,
+            "direct_precision": 100.0,
+            "false_none": 5.2,
+            "tokens_mean": 33.3,
+            "ood_n": 10,
+            "ood_far_rejected": 100.0,
+            "ood_far_direct": 0.0
+          },
+          "tier1": null,
+          "tier2": null,
+          "tier3": null,
+          "seconds": 1.9,
+          "misses": [
+            {
+              "q": "show me every process on this machine",
+              "tier": 0,
+              "got": "stop a process by name",
+              "conf": "weak"
+            },
+            {
+              "q": "check remaining storage",
+              "tier": 0,
+              "got": "check a disk for errors",
+              "conf": "weak"
+            },
+            {
+              "q": "which patches are installed",
+              "tier": 0,
+              "got": "list installed programs",
+              "conf": "weak"
+            },
+            {
+              "q": "see the update history",
+              "tier": 0,
+              "got": "update all programs with winget",
+              "conf": "weak"
+            },
+            {
+              "q": "show me the ethernet and wifi interfaces",
+              "tier": 0,
+              "got": "show the windows version",
+              "conf": "weak"
+            },
+            {
+              "q": "show network settings for all interfaces",
+              "tier": 0,
+              "got": "list network adapters",
+              "conf": "weak"
+            },
+            {
+              "q": "my dns is stale, how do I clear it",
+              "tier": 0,
+              "got": "clear the system event log",
+              "conf": "weak"
+            },
+            {
+              "q": "show active connections with pids",
+              "tier": 0,
+              "got": "show the windows version",
+              "conf": "weak"
+            },
+            {
+              "q": "check connectivity to a website",
+              "tier": 0,
+              "got": "check a disk for errors",
+              "conf": "weak"
+            },
+            {
+              "q": "show the task scheduler entries",
+              "tier": 0,
+              "got": "show the windows version",
+              "conf": "weak"
+            },
+            {
+              "q": "how long has the pc been up",
+              "tier": 0,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "who has an account on this pc",
+              "tier": 0,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "who has admin rights here",
+              "tier": 0,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "is the firewall turned on",
+              "tier": 0,
+              "got": "list firewall rules",
+              "conf": "weak"
+            },
+            {
+              "q": "run the system file checker",
+              "tier": 0,
+              "got": "clear the system event log",
+              "conf": "weak"
+            },
+            {
+              "q": "sfc did not fix it, what else repairs windows",
+              "tier": 0,
+              "got": "repair the windows system files",
+              "conf": "weak"
+            },
+            {
+              "q": "restore the component store health",
+              "tier": 0,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "my drive might have bad sectors",
+              "tier": 0,
+              "got": "map a network drive",
+              "conf": "weak"
+            },
+            {
+              "q": "give me the full specs of this machine",
+              "tier": 0,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "dump the system info",
+              "tier": 0,
+              "got": "clear the system event log",
+              "conf": "weak"
+            },
+            {
+              "q": "print the environment",
+              "tier": 0,
+              "got": "set a permanent environment variable",
+              "conf": "weak"
+            },
+            {
+              "q": "how do I make an env var survive a reboot",
+              "tier": 0,
+              "got": "list environment variables",
+              "conf": "weak"
+            },
+            {
+              "q": "what went wrong lately in the event viewer",
+              "tier": 0,
+              "got": "clear the system event log",
+              "conf": "weak"
+            },
+            {
+              "q": "what is eating my disk space",
+              "tier": 0,
+              "got": "show free disk space",
+              "conf": "weak"
+            },
+            {
+              "q": "zip up a directory",
+              "tier": 0,
+              "got": "extract a zip file",
+              "conf": "weak"
+            },
+            {
+              "q": "how do I make a zip from powershell",
+              "tier": 0,
+              "got": "extract a zip file",
+              "conf": "weak"
+            },
+            {
+              "q": "how do I open a zip from the terminal",
+              "tier": 0,
+              "got": "list open network ports",
+              "conf": "weak"
+            },
+            {
+              "q": "verify the checksum of a download",
+              "tier": 0,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "why are my scripts blocked",
+              "tier": 0,
+              "got": "allow local scripts to run",
+              "conf": "weak"
+            },
+            {
+              "q": "let me run my own ps1 files",
+              "tier": 0,
+              "got": "repair the windows system files",
+              "conf": "weak"
+            },
+            {
+              "q": "enable script execution for my user",
+              "tier": 0,
+              "got": "show the current execution policy",
+              "conf": "weak"
+            },
+            {
+              "q": "connect a shared folder as a drive letter",
+              "tier": 0,
+              "got": "list shared folders",
+              "conf": "weak"
+            },
+            {
+              "q": "show the smb shares",
+              "tier": 0,
+              "got": "show the windows version",
+              "conf": "weak"
+            },
+            {
+              "q": "show how traffic is routed",
+              "tier": 0,
+              "got": "show the windows version",
+              "conf": "weak"
+            },
+            {
+              "q": "is my windows licensed",
+              "tier": 0,
+              "got": "show the windows version",
+              "conf": "weak"
+            },
+            {
+              "q": "check the license expiry",
+              "tier": 0,
+              "got": "check a disk for errors",
+              "conf": "weak"
+            },
+            {
+              "q": "turn the pc off in a minute",
+              "tier": 0,
+              "got": "",
+              "conf": "none"
+            },
+            {
+              "q": "schedule a shutdown",
+              "tier": 0,
+              "got": "cancel a pending shutdown",
+              "conf": "weak"
+            },
+            {
+              "q": "stop the shutdown I just started",
+              "tier": 0,
+              "got": "stop a process by name",
+              "conf": "weak"
+            },
+            {
+              "q": "abort the restart countdown",
+              "tier": 0,
+              "got": "restart a windows service",
+              "conf": "weak"
+            }
+          ],
+          "ood_answers": [
+            {
+              "q": "how do I configure the kubernetes ingress controller",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "what is the airspeed velocity of an unladen swallow",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "reset my gmail password",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "how do I solder a surface mount resistor",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "translate this document into japanese",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "what is the capital of paraguay",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "compile a rust binary for arm64",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "how much does a tesla model 3 cost",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "write a haiku about the ocean",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            },
+            {
+              "q": "what is the boiling point of ethanol",
+              "kind": "far",
+              "conf": "none",
+              "got": ""
+            }
+          ]
+        }
+      }
+    }
+  }
+}

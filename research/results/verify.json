@@ -1,0 +1,700 @@
+{
+  "version": "fds 0.1.0",
+  "summary": {
+    "PASS": 110,
+    "FAIL": 0,
+    "NOTE": 5
+  },
+  "checks": [
+    {
+      "area": "cli",
+      "check": "init creates an empty v4 database",
+      "status": "PASS",
+      "detail": "records=0 format=4"
+    },
+    {
+      "area": "cli",
+      "check": "fact add → exact query answers it",
+      "status": "PASS",
+      "detail": "confidence=exact"
+    },
+    {
+      "area": "cli",
+      "check": "same question again replaces, not duplicates",
+      "status": "PASS",
+      "detail": "facts=1"
+    },
+    {
+      "area": "cli",
+      "check": "a query typed with combining accents (NFD) finds a fact stored with composed ones",
+      "status": "PASS",
+      "detail": "confidence=exact"
+    },
+    {
+      "area": "cli",
+      "check": "normalized match (case, spaces, punctuation)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "cli",
+      "check": "proc add from JSON → intent answers exactly",
+      "status": "PASS",
+      "detail": "exact"
+    },
+    {
+      "area": "cli",
+      "check": "add a folder of documents → knowledge fragments, searchable",
+      "status": "PASS",
+      "detail": "fragments=22 top kinds=['knowledge', 'knowledge', 'knowledge']"
+    },
+    {
+      "area": "cli",
+      "check": "every answer carries its source",
+      "status": "PASS",
+      "detail": "demo/handbook/decoupling.md"
+    },
+    {
+      "area": "cli",
+      "check": "re-adding the same documents does not duplicate",
+      "status": "PASS",
+      "detail": "22 → 22"
+    },
+    {
+      "area": "cli",
+      "check": "--links brings the linked record in the same answer",
+      "status": "PASS",
+      "detail": "['router admin address', 'router reset']"
+    },
+    {
+      "area": "cli",
+      "check": "`show` lists the record's resolved links and backlinks",
+      "status": "NOTE",
+      "detail": "empty: links are resolved only over HTTP (GET /records/:id); the CLI shows none"
+    },
+    {
+      "area": "cli",
+      "check": "context set/show returns instructions + members",
+      "status": "PASS",
+      "detail": "members=2 missing=['does not exist yet']"
+    },
+    {
+      "area": "cli",
+      "check": "context show --known <same hash> → unchanged, no payload",
+      "status": "PASS",
+      "detail": "{\"changed\": false, \"hash\": \"7e4b2febf7991283\", \"name\": \"Network help\", \"tokens\": 25}"
+    },
+    {
+      "area": "cli",
+      "check": "editing a member changes the context hash",
+      "status": "PASS",
+      "detail": "7e4b2febf7991283 → 69dac7a38f8b45c2"
+    },
+    {
+      "area": "cli",
+      "check": "a context never appears as a query result",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "area": "cli",
+      "check": "--verified-by human excludes ingested documents",
+      "status": "PASS",
+      "detail": "0 records"
+    },
+    {
+      "area": "cli",
+      "check": "-c scopes to one collection",
+      "status": "PASS",
+      "detail": "none"
+    },
+    {
+      "area": "cli",
+      "check": "out-of-domain query → none, exit code 2",
+      "status": "PASS",
+      "detail": "exit=2"
+    },
+    {
+      "area": "cli",
+      "check": "--budget caps the tokens returned",
+      "status": "PASS",
+      "detail": "used_tokens=56 of 60"
+    },
+    {
+      "area": "cli",
+      "check": "ls --kind fact lists only facts",
+      "status": "PASS",
+      "detail": "5 rows"
+    },
+    {
+      "area": "cli",
+      "check": "rm <id> removes exactly one record",
+      "status": "PASS",
+      "detail": "5 → 4"
+    },
+    {
+      "area": "cli",
+      "check": "rm --source <stored path> removes a document's fragments",
+      "status": "PASS",
+      "detail": "22 → 20"
+    },
+    {
+      "area": "cli",
+      "check": "rm --source with a Windows-style path",
+      "status": "PASS",
+      "detail": "removed"
+    },
+    {
+      "area": "cli",
+      "check": "rm --source with a absolute path",
+      "status": "PASS",
+      "detail": "removed"
+    },
+    {
+      "area": "cli",
+      "check": "AGENTS.md imports as a context, its [[links]] as members, and exports back",
+      "status": "PASS",
+      "detail": "members=1, export 199 chars"
+    },
+    {
+      "area": "cli",
+      "check": "CLI has no `export` and no `edit` (HTTP only)",
+      "status": "NOTE",
+      "detail": "parity gap: a script without the server cannot export or edit"
+    },
+    {
+      "area": "import",
+      "check": "Excel CSV (; + Windows-1252) dry run writes nothing",
+      "status": "PASS",
+      "detail": "research\\work\\verify\\excel.csv: 3 rows, 4 columns, separated by `;`, Windows-1252"
+    },
+    {
+      "area": "import",
+      "check": "real import: accents survive, query answers",
+      "status": "PASS",
+      "detail": "exact"
+    },
+    {
+      "area": "import",
+      "check": "re-import is idempotent (all unchanged, file untouched)",
+      "status": "PASS",
+      "detail": "{\"duplicate\": 0, \"error\": 0, \"fragments\": 0, \"new\": 0, \"replace\": 0, \"unchanged\": 3}"
+    },
+    {
+      "area": "import",
+      "check": "a batch with an error row is refused whole",
+      "status": "PASS",
+      "detail": "exit=1"
+    },
+    {
+      "area": "import",
+      "check": "--skip-errors writes the valid rows",
+      "status": "PASS",
+      "detail": "exact"
+    },
+    {
+      "area": "import",
+      "check": "JSON Lines: procedures and contexts",
+      "status": "PASS",
+      "detail": "proc=exact ctx members=1"
+    },
+    {
+      "area": "import",
+      "check": "a formula cell is stored as text",
+      "status": "PASS",
+      "detail": "=HYPERLINK(http://x)"
+    },
+    {
+      "area": "robust",
+      "check": "truncated file: clean error, no crash",
+      "status": "PASS",
+      "detail": "fds: research\\work\\verify\\corrupt.fds is truncated or corrupt."
+    },
+    {
+      "area": "robust",
+      "check": "random bytes: clean error, no crash",
+      "status": "PASS",
+      "detail": "fds: research\\work\\verify\\corrupt.fds is not a FDS database."
+    },
+    {
+      "area": "robust",
+      "check": "empty file: clean error, no crash",
+      "status": "PASS",
+      "detail": "fds: research\\work\\verify\\corrupt.fds is truncated or corrupt."
+    },
+    {
+      "area": "robust",
+      "check": "flipped byte in the index: clean error, no crash",
+      "status": "PASS",
+      "detail": "fds: research\\work\\verify\\corrupt.fds is damaged: the checksum of its index does no"
+    },
+    {
+      "area": "robust",
+      "check": "Unicode questions (ja, zh, es, emoji, ar, accents) round-trip exactly",
+      "status": "PASS",
+      "detail": "6/6"
+    },
+    {
+      "area": "robust",
+      "check": "a single CJK-free word finds its Spanish record",
+      "status": "PASS",
+      "detail": "exact"
+    },
+    {
+      "area": "robust",
+      "check": "partial CJK query (no spaces between words) finds the record",
+      "status": "NOTE",
+      "detail": "confidence=none"
+    },
+    {
+      "area": "robust",
+      "check": "an 800 KB answer is stored and the budget still holds",
+      "status": "PASS",
+      "detail": "used_tokens=400000 of 200"
+    },
+    {
+      "area": "robust",
+      "check": "a v2 file is read, and the first write migrates it to v4 with nothing lost",
+      "status": "PASS",
+      "detail": "v2 45 records → v4 46"
+    },
+    {
+      "area": "robust",
+      "check": "3 processes × 20 concurrent writes keep every record",
+      "status": "PASS",
+      "detail": "kept 60/60; failed writes: 0"
+    },
+    {
+      "area": "robust",
+      "check": "killing a write at 5 different moments never leaves an unreadable file",
+      "status": "PASS",
+      "detail": "5/5 readable"
+    },
+    {
+      "area": "robust",
+      "check": "a killed write can leave a stray .fds.tmp behind",
+      "status": "NOTE",
+      "detail": "none left"
+    },
+    {
+      "area": "robust",
+      "check": "paths with spaces and non-ASCII characters",
+      "status": "PASS",
+      "detail": "base ñandú.fds"
+    },
+    {
+      "area": "http",
+      "check": "GET /status without a token",
+      "status": "PASS",
+      "detail": "200"
+    },
+    {
+      "area": "http",
+      "check": "POST /query answers",
+      "status": "PASS",
+      "detail": "200"
+    },
+    {
+      "area": "http",
+      "check": "a write without the token is refused",
+      "status": "PASS",
+      "detail": "403"
+    },
+    {
+      "area": "http",
+      "check": "a write with the token succeeds",
+      "status": "PASS",
+      "detail": "200"
+    },
+    {
+      "area": "http",
+      "check": "a foreign Host header is refused (DNS rebinding)",
+      "status": "PASS",
+      "detail": "HTTP/1.1 403 Forbidden"
+    },
+    {
+      "area": "http",
+      "check": "context ETag → 304 Not Modified on repeat",
+      "status": "PASS",
+      "detail": "200 then 304"
+    },
+    {
+      "area": "http",
+      "check": "?known=<hash> → {changed:false}",
+      "status": "PASS",
+      "detail": "{\"changed\":false,\"hash\":\"69dac7a38f8b45c2\",\"name\":\"Network help\",\"tokens\":25}"
+    },
+    {
+      "area": "http",
+      "check": "PATCH edits a record and marks it verified by a person",
+      "status": "PASS",
+      "detail": "PATCH 200, verified_by=human"
+    },
+    {
+      "area": "http",
+      "check": "export CSV and JSON",
+      "status": "PASS",
+      "detail": "csv 1743 B, json 12231 B"
+    },
+    {
+      "area": "http",
+      "check": "the server sees a CLI write without /reload",
+      "status": "PASS",
+      "detail": "seen"
+    },
+    {
+      "area": "http",
+      "check": "after POST /reload the CLI write is visible",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "http",
+      "check": "a server write keeps the CLI's record (read-before-write)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "http",
+      "check": "listens on loopback only",
+      "status": "PASS",
+      "detail": "127.0.0.1:58936"
+    },
+    {
+      "area": "mcp",
+      "check": "initialize",
+      "status": "PASS",
+      "detail": "2025-06-18"
+    },
+    {
+      "area": "mcp",
+      "check": "tools/list exposes query, contexts, context, check, status, journal",
+      "status": "PASS",
+      "detail": "fds_query, fds_contexts, fds_context, fds_check, fds_status, fds_journal"
+    },
+    {
+      "area": "mcp",
+      "check": "fds_query with links",
+      "status": "PASS",
+      "detail": "confidence: exact"
+    },
+    {
+      "area": "mcp",
+      "check": "fds_context with known_hash → one line instead of the bundle",
+      "status": "PASS",
+      "detail": "512 chars → 84 chars"
+    },
+    {
+      "area": "mcp",
+      "check": "a missing argument is a tool error, not a crash",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "mcp",
+      "check": "an unknown method gets a JSON-RPC error",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "mcp",
+      "check": "a connected agent sees records written after it connected",
+      "status": "PASS",
+      "detail": "seen"
+    },
+    {
+      "area": "sectors",
+      "check": "`sector new` creates files and keeps only key hashes",
+      "status": "PASS",
+      "detail": "['shared', 'ventas', 'ops']"
+    },
+    {
+      "area": "sectors",
+      "check": "an invalid sector name is refused",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "sectors",
+      "check": "a stdio agent reaches the server through `mcp --connect`, with memory tools",
+      "status": "PASS",
+      "detail": "fds_query, fds_contexts, fds_context, fds_check, fds_status, fds_journal, fds_remember, fds_log, fds_forget"
+    },
+    {
+      "area": "sectors",
+      "check": "an agent remembers and finds it again",
+      "status": "PASS",
+      "detail": "saved bb1918a6a789 in sector ventas, as verified_by model:ventas"
+    },
+    {
+      "area": "sectors",
+      "check": "an agent reads the shared sector",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "sectors",
+      "check": "another agent cannot see that memory",
+      "status": "PASS",
+      "detail": "confidence line: confidence: none"
+    },
+    {
+      "area": "sectors",
+      "check": "a wrong key gets 401",
+      "status": "PASS",
+      "detail": "401"
+    },
+    {
+      "area": "sectors",
+      "check": "after a person promotes it, every agent sees it, verified by a person",
+      "status": "PASS",
+      "detail": "Promoted bb1918a6a789 from `ventas` to `shared`; it was model:ventas, it is now verified by a person"
+    },
+    {
+      "area": "sectors",
+      "check": "an agent cannot remove what a person verified in its sector",
+      "status": "PASS",
+      "detail": "record 33c581b5d085 is verified by human; only records an agent wrote can be removed this "
+    },
+    {
+      "area": "sectors",
+      "check": "rotating a key revokes the old one at once",
+      "status": "PASS",
+      "detail": "old 401, new 200"
+    },
+    {
+      "area": "sectors",
+      "check": "`mcp --sectors --as` works without a server",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "journal",
+      "check": "an agent's entry is logged, with its files, branch and commit, and waits for review",
+      "status": "PASS",
+      "detail": "rc=0 {'agent': 'backend', 'at': '2026-10-24T16:03:42Z', 'branch': 'feat/login', 'commit': 'a1b2c3d', 'files': ['src/auth.rs',"
+    },
+    {
+      "area": "journal",
+      "check": "an entry a person logs is marked as theirs and reviewed",
+      "status": "PASS",
+      "detail": "2 entries"
+    },
+    {
+      "area": "journal",
+      "check": "the journal filters by branch, agent and limit",
+      "status": "PASS",
+      "detail": "1 1"
+    },
+    {
+      "area": "journal",
+      "check": "an agent logs through MCP with fds_log",
+      "status": "PASS",
+      "detail": "logged 1947cbbd57ea in sector journal, as verified_by model:claude-1; a person c"
+    },
+    {
+      "area": "journal",
+      "check": "the agent's MCP entry shows up for the developer, unreviewed",
+      "status": "PASS",
+      "detail": "[{'agent': 'claude-1', 'at': '2026-10-24T16:03:42Z', 'branch': 'feat/cache', 'commit': '', 'files': "
+    },
+    {
+      "area": "journal",
+      "check": "a reviewer without --write reads the journal with fds_journal: timeline oldest first, then each entry's detail",
+      "status": "PASS",
+      "detail": "#01 [backend] Add a rate limit to /login | #02 [person] Rename the session cookie | #03 [claude-1] Cache the price list |  | detail: | #01 Add a rate limit to /login |     "
+    },
+    {
+      "area": "journal",
+      "check": "fds_journal filters by agent, lists newest first without the timeline, and says so when empty",
+      "status": "PASS",
+      "detail": "el registro está vacío con esos filtros"
+    },
+    {
+      "area": "journal",
+      "check": "export writes a Markdown page a developer can read on GitHub",
+      "status": "PASS",
+      "detail": "732 chars"
+    },
+    {
+      "area": "journal",
+      "check": "publish commits the journal to branch `fds` and touches nothing else",
+      "status": "PASS",
+      "detail": "Created branch `fds` at a7ac8073c6 with 3 entries, 2 agent(s), 3 branch(es).\nYour files, your index "
+    },
+    {
+      "area": "journal",
+      "check": "publishing the same journal again adds no commit",
+      "status": "PASS",
+      "detail": "commits on fds: 1"
+    },
+    {
+      "area": "journal",
+      "check": "a new entry adds one commit to `fds`",
+      "status": "PASS",
+      "detail": "commits on fds: 2"
+    },
+    {
+      "area": "policy",
+      "check": "a range whose min is above its max is refused when it is written",
+      "status": "PASS",
+      "detail": "fds: --min is above --max: nothing could ever pass"
+    },
+    {
+      "area": "policy",
+      "check": "`policy ls` lists what was added",
+      "status": "PASS",
+      "detail": "698f0e96  range fridge.chamber3.setpoint set [-20..-16 C]  Below -20 C the stock is damaged.\n6a8dff1"
+    },
+    {
+      "area": "policy",
+      "check": "`check`: inside the range is allowed (exit 0), outside is denied (exit 3) with the rule and its text",
+      "status": "PASS",
+      "detail": "0 3 [{'id': '698f0e9654d499e1', 'last_verified': '2026-10-24', 'max': '-16', 'min': '-20', 'reason': '-40 is outside -20..-16', 'rule': 'range', 'text': 'Below -20 C the stock is damaged.', 'unit': 'C', 'verified_by': 'human'}]"
+    },
+    {
+      "area": "policy",
+      "check": "a value that is not a number, and a rule `deny`, are denied",
+      "status": "PASS",
+      "detail": "3 3"
+    },
+    {
+      "area": "policy",
+      "check": "with no matching policy the default decides (allow here, and it says so)",
+      "status": "PASS",
+      "detail": "{'action': 'open', 'because': [], 'decision': 'allow', 'default_applied': True, 'subject':"
+    },
+    {
+      "area": "policy",
+      "check": "`--default deny` closes what no policy covers",
+      "status": "PASS",
+      "detail": "deny: open garage.door -- no policy matches (the default)"
+    },
+    {
+      "area": "policy",
+      "check": "POST /check answers the same, with a number as the value",
+      "status": "PASS",
+      "detail": "200 {\"action\":\"set\",\"because\":[{\"id\":\"698f0e9654d499e1\",\"last_verified\":\"2026-10-24\""
+    },
+    {
+      "area": "policy",
+      "check": "the MCP tool fds_check tells an agent deny, and allow",
+      "status": "PASS",
+      "detail": "deny: set fridge.chamber3.setpoint = -40 -- range Below -20 C the stoc"
+    },
+    {
+      "area": "guard",
+      "check": "the guard passes the protocol through: the agent sees the real server's tools",
+      "status": "PASS",
+      "detail": "['set_temperature', 'run_sql_drop', 'list_things']"
+    },
+    {
+      "area": "guard",
+      "check": "an allowed call reaches the tool and its answer comes back",
+      "status": "PASS",
+      "detail": "done: set_temperature {\"celsius\": -18, \"chamber\": \"chamber3\""
+    },
+    {
+      "area": "guard",
+      "check": "a denied call never reaches the tool; the agent gets the rule and its text",
+      "status": "PASS",
+      "detail": "['set_temperature', 'list_things'] | FDS guard: denied. Below -20 C the stock is damaged. (-40 is outside -"
+    },
+    {
+      "area": "guard",
+      "check": "a tool no policy governs is forwarded under the default allow",
+      "status": "PASS",
+      "detail": "done: list_things {}"
+    },
+    {
+      "area": "guard",
+      "check": "a call missing the argument a policy needs is denied, not guessed",
+      "status": "PASS",
+      "detail": "FDS guard: denied. the call to `set_temperature` lacks the value a policy needs "
+    },
+    {
+      "area": "guard",
+      "check": "the server receives exactly what was checked (a duplicated key is resolved before forwarding)",
+      "status": "PASS",
+      "detail": "{'celsius': -18, 'chamber': 'chamber3'}"
+    },
+    {
+      "area": "guard",
+      "check": "a batch is refused whole, so a tool call cannot hide inside one",
+      "status": "PASS",
+      "detail": "{'error': {'code': -32600, 'message': 'the guard does not accept batches; send o"
+    },
+    {
+      "area": "audit",
+      "check": "every tool call was recorded, and the chain verifies",
+      "status": "PASS",
+      "detail": "6 lines; 6 entries, the chain is intact. Last hash: 58c7df475e9883875fefb9b2b9d"
+    },
+    {
+      "area": "audit",
+      "check": "the audit says who asked, what, and why it was decided",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "audit",
+      "check": "a line changed afterwards breaks the chain, and verify says where",
+      "status": "PASS",
+      "detail": "BROKEN at line 3: the line before this one was changed"
+    },
+    {
+      "area": "guard",
+      "check": "with `default: deny` a tool no policy covers is refused",
+      "status": "PASS",
+      "detail": "FDS guard: denied. no policy covers the tool `list_things`, and the default is d"
+    },
+    {
+      "area": "guard",
+      "check": "a policy a person adds while the guard runs applies to the very next call",
+      "status": "PASS",
+      "detail": "done: list_things {}"
+    },
+    {
+      "area": "journal",
+      "check": "the timeline puts the guard's decisions beside the journal's steps, numbered, in order",
+      "status": "PASS",
+      "detail": "#01 [me] Checked the fridge limits | #02 [guard] allow set_temperature [set fridge.chamber3.setpoint = -18] by claude-r | #0"
+    },
+    {
+      "area": "sensitive",
+      "check": "an agent without clearance gets the owner's `derived` text, not the record",
+      "status": "PASS",
+      "detail": "confidence: exact | records: 1 |  | --- [fact] direccion de juan perez --- | id: 9d713317d57f | sector: clientes | source: [protected] | verified_by"
+    },
+    {
+      "area": "sensitive",
+      "check": "...and cannot find the record by a word only its hidden body has",
+      "status": "PASS",
+      "detail": "confidence: none | records: 0 | "
+    },
+    {
+      "area": "sensitive",
+      "check": "a secret it is not cleared for shows as [protected: secret]",
+      "status": "PASS",
+      "detail": "confidence: exact | records: 1 |  | --- [fact] clave del servidor --- | id: 213af15d7ca8 | sector: clientes | source: [protected] | verified_by: hum"
+    },
+    {
+      "area": "sensitive",
+      "check": "an agent cleared for `personal` reads it in full; `secret` still stays hidden",
+      "status": "PASS",
+      "detail": "confidence: exact | records: 1 |  | --- [fact] direccion de juan perez --- | id: 9d713317d57f | sector: clie"
+    },
+    {
+      "area": "sensitive",
+      "check": "ordinary records are untouched",
+      "status": "PASS",
+      "detail": "confidence: exact | records: 1 |  | --- [fact] horario de atencion --- | id: 6509e53c738"
+    },
+    {
+      "area": "vectors",
+      "check": "Ollama or its all-minilm model is missing: skipped",
+      "status": "NOTE",
+      "detail": ""
+    }
+  ]
+}

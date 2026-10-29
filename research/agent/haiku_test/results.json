@@ -1,0 +1,24 @@
+{
+  "model": "claude haiku (subagents of a Claude Code session)",
+  "date": "2026-10-21",
+  "runs_per_cell": 1,
+  "tasks": ["textos (hours, address, phone, two price lists)", "imagenes (4 <img> with exact src and alt)", "marca (CSS variables from brand colours and fonts)"],
+  "conditions": {
+    "A": "data only in an FDS database, queried with `fds query` from the terminal",
+    "B": "the whole data file read into the agent's context"
+  },
+  "small": {
+    "records": 18, "bytes": 5534,
+    "A": {"tokens": {"textos": 58145, "imagenes": 56444, "marca": 56162}, "tool_calls": {"textos": 8, "imagenes": 7, "marca": 6}, "seconds": {"textos": 25.7, "imagenes": 19.2, "marca": 20.2}, "correct": "35/35", "invented": 0},
+    "B": {"tokens": {"textos": 57410, "imagenes": 57239, "marca": 57549}, "tool_calls": {"textos": 3, "imagenes": 3, "marca": 3}, "seconds": {"textos": 13.0, "imagenes": 11.7, "marca": 13.6}, "correct": "35/35", "invented": 0}
+  },
+  "large": {
+    "records": 508, "bytes": 239365, "note": "the 18 records plus 480 unrelated ones and 10 near-collisions (another site's hours, prices, colours, photos)",
+    "A": {"tokens": {"textos": 59179, "imagenes": 58794, "marca": 58201}, "tool_calls": {"textos": 9, "imagenes": 7, "marca": 5}, "seconds": {"textos": 27.1, "imagenes": 23.2, "marca": 22.4}, "correct": "35/35", "invented": 0},
+    "B": {"tokens": {"textos": 158694, "imagenes": 159312, "marca": 159940}, "tool_calls": {"textos": 7, "imagenes": 10, "marca": 16}, "seconds": {"textos": 23.2, "imagenes": 25.3, "marca": 27.8}, "correct": "35/35", "invented": 0}
+  },
+  "totals": {
+    "small": {"A": 170751, "B": 172198},
+    "large": {"A": 176174, "B": 477946}
+  }
+}

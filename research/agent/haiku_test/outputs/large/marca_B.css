@@ -1,0 +1,8 @@
+/* Tono de voz: cercano y cálido, de tú, frases cortas; nunca superlativos vacíos. */
+:root {
+  --fondo: #F6EFE3;
+  --texto: #3B2417;
+  --acento: #D9772B;
+  --fuente-titulos: "Fraunces", serif;
+  --fuente-texto: "Inter", sans-serif;
+}

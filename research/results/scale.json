@@ -1,0 +1,71 @@
+{
+ "format": 3,
+ "machine": {
+  "cpu": 16,
+  "ram_gb": 15.7,
+  "os": "win32"
+ },
+ "rows": [
+  {
+   "records": 1000,
+   "facts": 100,
+   "procedures": 100,
+   "fragments": 800,
+   "import_s": 0.05,
+   "add_docs_s": 0.16,
+   "bytes": 984835,
+   "bytes_per_record": 985,
+   "cold_p50_ms": 51.3,
+   "cold_p95_ms": 57.2,
+   "warm_p50_ms": 14.48,
+   "warm_p95_ms": 16.37,
+   "cli_peak_mb": 15.7,
+   "server_mb": 17.1,
+   "one_write_s": 0.03,
+   "embed_s": 24.3,
+   "bytes_with_vectors": 2533477,
+   "vector_warm_p50_ms": 359.8,
+   "vector_warm_p95_ms": 376.6,
+   "server_mb_with_vectors": 21.4
+  },
+  {
+   "records": 10000,
+   "facts": 1000,
+   "procedures": 1000,
+   "fragments": 8000,
+   "import_s": 0.07,
+   "add_docs_s": 1.14,
+   "bytes": 9834039,
+   "bytes_per_record": 983,
+   "cold_p50_ms": 315.7,
+   "cold_p95_ms": 349.5,
+   "warm_p50_ms": 15.8,
+   "warm_p95_ms": 32.84,
+   "cli_peak_mb": 76.4,
+   "server_mb": 77.2,
+   "one_write_s": 0.06,
+   "embed_s": 263.2,
+   "bytes_with_vectors": 25278681,
+   "vector_warm_p50_ms": 352.7,
+   "vector_warm_p95_ms": 394.7,
+   "server_mb_with_vectors": 95.2
+  },
+  {
+   "records": 100000,
+   "facts": 10000,
+   "procedures": 10000,
+   "fragments": 80000,
+   "import_s": 1.25,
+   "add_docs_s": 13.92,
+   "bytes": 98735374,
+   "bytes_per_record": 987,
+   "cold_p50_ms": 2856.7,
+   "cold_p95_ms": 3139.9,
+   "warm_p50_ms": 64.16,
+   "warm_p95_ms": 176.59,
+   "cli_peak_mb": 674.9,
+   "server_mb": 672.2,
+   "one_write_s": 0.41
+  }
+ ]
+}

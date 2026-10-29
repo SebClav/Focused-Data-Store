@@ -1,0 +1,11 @@
+{
+  "agents": 5,
+  "shared_records": 10000,
+  "shared_file_mb": 7.2,
+  "A_processes_mb": 300.0,
+  "B_server_mb": 62.0,
+  "B_bridges_mb": 48.5,
+  "B_total_mb": 110.5,
+  "A_query_p50_ms": 5.0,
+  "B_query_p50_ms": 6.3
+}

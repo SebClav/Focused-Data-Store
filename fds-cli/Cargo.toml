@@ -6,7 +6,7 @@ description = "FDS (Focused Model Data Store): a database for knowledge that AI 
 license = "Apache-2.0"
 
 [[bin]]
-name = "fds-full"
+name = "fds"
 path = "src/main.rs"
 
 [dependencies]

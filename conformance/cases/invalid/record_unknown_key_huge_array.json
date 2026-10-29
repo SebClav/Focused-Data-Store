@@ -1,0 +1,8 @@
+{
+  "description": "An unknown key whose value claims 2^64-1 elements.",
+  "error": "malformed",
+  "stage": "record",
+  "readable": [
+    0
+  ]
+}

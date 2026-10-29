@@ -1,0 +1,8 @@
+{
+  "description": "embedding is an array, not a byte string.",
+  "error": "malformed",
+  "stage": "record",
+  "readable": [
+    0
+  ]
+}

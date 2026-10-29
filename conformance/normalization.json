@@ -1,0 +1,809 @@
+{
+  "description": "Normalisation (SPEC.md section 4.1) and identifiers (section 3.1). Every implementation must reproduce every line. `canonical` is the text lower-cased, converted to Unicode NFC, with everything that is not a letter, a number, a combining mark or white space turned into a space, and white space collapsed. `tokens` are the runs of letters, numbers and marks of the folded text, without stopwords (conformance/stopwords.txt), in order. `key` is `tokens` sorted and de-duplicated.",
+  "normalize": [
+    {
+      "input": "What is the LM317's  reference, voltage?",
+      "canonical": "what is the lm317 s reference voltage",
+      "tokens": [
+        "lm317",
+        "s",
+        "reference",
+        "voltage"
+      ],
+      "key": [
+        "lm317",
+        "reference",
+        "s",
+        "voltage"
+      ]
+    },
+    {
+      "input": "¿Cuál es la tensión máxima?",
+      "canonical": "cuál es la tensión máxima",
+      "tokens": [
+        "tensión",
+        "máxima"
+      ],
+      "key": [
+        "máxima",
+        "tensión"
+      ]
+    },
+    {
+      "input": "  Hello,\tWorld!\n",
+      "canonical": "hello world",
+      "tokens": [
+        "hello",
+        "world"
+      ],
+      "key": [
+        "hello",
+        "world"
+      ]
+    },
+    {
+      "input": "",
+      "canonical": "",
+      "tokens": [],
+      "key": []
+    },
+    {
+      "input": "!!! ... ???",
+      "canonical": "",
+      "tokens": [],
+      "key": []
+    },
+    {
+      "input": "ÑANDÚ",
+      "canonical": "ñandú",
+      "tokens": [
+        "ñandú"
+      ],
+      "key": [
+        "ñandú"
+      ]
+    },
+    {
+      "input": "3.14 + 2",
+      "canonical": "3 14 2",
+      "tokens": [
+        "3",
+        "14",
+        "2"
+      ],
+      "key": [
+        "14",
+        "2",
+        "3"
+      ]
+    },
+    {
+      "input": "snake_case-and-kebab",
+      "canonical": "snake case and kebab",
+      "tokens": [
+        "snake",
+        "case",
+        "kebab"
+      ],
+      "key": [
+        "case",
+        "kebab",
+        "snake"
+      ]
+    },
+    {
+      "input": "日本語のテキスト",
+      "canonical": "日本語のテキスト",
+      "tokens": [
+        "日本語のテキスト"
+      ],
+      "key": [
+        "日本語のテキスト"
+      ]
+    },
+    {
+      "input": "x² and y₃",
+      "canonical": "x² and y₃",
+      "tokens": [
+        "x²",
+        "y₃"
+      ],
+      "key": [
+        "x²",
+        "y₃"
+      ]
+    },
+    {
+      "input": "The the THE",
+      "canonical": "the the the",
+      "tokens": [],
+      "key": []
+    },
+    {
+      "input": "Voltage voltage a b",
+      "canonical": "voltage voltage a b",
+      "tokens": [
+        "voltage",
+        "voltage",
+        "b"
+      ],
+      "key": [
+        "b",
+        "voltage"
+      ]
+    },
+    {
+      "input": "re-run it: now!",
+      "canonical": "re run it now",
+      "tokens": [
+        "re",
+        "run"
+      ],
+      "key": [
+        "re",
+        "run"
+      ]
+    },
+    {
+      "input": "ΟΔΥΣΣΕΥΣ",
+      "canonical": "οδυσσευς",
+      "tokens": [
+        "οδυσσευς"
+      ],
+      "key": [
+        "οδυσσευς"
+      ]
+    },
+    {
+      "input": "cafe\u0301 u\u0303n",
+      "canonical": "café ũn",
+      "tokens": [
+        "café",
+        "ũn"
+      ],
+      "key": [
+        "café",
+        "ũn"
+      ],
+      "note": "tilde as a separate combining character (NFD): same word as the composed one"
+    },
+    {
+      "input": "Ni\u0303o",
+      "canonical": "nĩo",
+      "tokens": [
+        "nĩo"
+      ],
+      "key": [
+        "nĩo"
+      ],
+      "note": "n-tilde written as n plus U+0303"
+    },
+    {
+      "input": "ह\u093fन\u094dद\u0940 भ\u093eष\u093e",
+      "canonical": "ह\u093fन\u094dद\u0940 भ\u093eष\u093e",
+      "tokens": [
+        "ह\u093fन\u094dद\u0940",
+        "भ\u093eष\u093e"
+      ],
+      "key": [
+        "भ\u093eष\u093e",
+        "ह\u093fन\u094dद\u0940"
+      ],
+      "note": "Devanagari: its vowel signs are marks and stay inside the word"
+    },
+    {
+      "input": "한국어",
+      "canonical": "한국어",
+      "tokens": [
+        "한국어"
+      ],
+      "key": [
+        "한국어"
+      ],
+      "note": "Hangul jamo compose into syllables under NFC"
+    }
+  ],
+  "same_key": [
+    [
+      "what is the reference voltage of the lm317",
+      "LM317 reference voltage?"
+    ],
+    [
+      "¿Cómo reinicio el router?",
+      "reinicio router"
+    ],
+    [
+      "Café Ñandú",
+      "cafe\u0301 ñandu\u0301"
+    ],
+    [
+      "Man\u0303ana",
+      "Mañana"
+    ]
+  ],
+  "different_key": [
+    [
+      "reference voltage",
+      "reference current"
+    ]
+  ],
+  "search_terms_description": "Search terms (SPEC.md section 4.1): the search fold of the text (NFKC, lower case, letter replacements such as ss for the German sharp s, invisible characters deleted, NFD, removable marks dropped, NFC), cut into runs of letters, numbers and marks that start at a letter or a number; runs of unspaced scripts (Han, kana, Hangul, Thai, Lao, Khmer, Myanmar) are cut into units and give, for unit i, the unit and the pair of units i and i+1; the stopwords (folded the same way) are removed. Stage 2 matches on these; stage 1 keeps `tokens` and `key` as they are. `search_fold` lists the fold alone, `same_terms` and `different_terms` compare two texts, and `matches` says whether every search term of `query` is among the search terms of `text` (and the query has at least one), which is what a keyword hit and the `strong` confidence need.",
+  "search_terms": [
+    {
+      "input": "¿Cuál es el HORARIO de atención?",
+      "terms": [
+        "horario",
+        "atencion"
+      ]
+    },
+    {
+      "input": "horario de atencion",
+      "terms": [
+        "horario",
+        "atencion"
+      ]
+    },
+    {
+      "input": "Cómo llego a la terraza",
+      "terms": [
+        "llego",
+        "terraza"
+      ]
+    },
+    {
+      "input": "También ofrecen más opciones",
+      "terms": [
+        "ofrecen",
+        "opciones"
+      ]
+    },
+    {
+      "input": "ÑANDÚ",
+      "terms": [
+        "nandu"
+      ]
+    },
+    {
+      "input": "cafe\u0301 u\u0303n",
+      "terms": [
+        "cafe"
+      ]
+    },
+    {
+      "input": "Nin\u0303o",
+      "terms": [
+        "nino"
+      ]
+    },
+    {
+      "input": "über naïve façade, straße",
+      "terms": [
+        "uber",
+        "naive",
+        "facade",
+        "strasse"
+      ]
+    },
+    {
+      "input": "LM317's Reference-Voltage",
+      "terms": [
+        "lm317",
+        "s",
+        "reference",
+        "voltage"
+      ]
+    },
+    {
+      "input": "ह\u093fन\u094dद\u0940 भ\u093eष\u093e",
+      "terms": [
+        "ह\u093fन\u094dद\u0940",
+        "भ\u093eष\u093e"
+      ]
+    },
+    {
+      "input": "\u0301",
+      "terms": []
+    },
+    {
+      "input": "",
+      "terms": []
+    },
+    {
+      "input": "Straße 12",
+      "terms": [
+        "strasse",
+        "12"
+      ]
+    },
+    {
+      "input": "Привет, Мир!",
+      "terms": [
+        "привет",
+        "мир"
+      ]
+    },
+    {
+      "input": "Καλημέρα κόσμε",
+      "terms": [
+        "καλημερα",
+        "κοσμε"
+      ]
+    },
+    {
+      "input": "م\u064eر\u0652ح\u064eب\u064bا بالعالم",
+      "terms": [
+        "مرحبا",
+        "بالعالم"
+      ]
+    },
+    {
+      "input": "ש\u05b8\u05c1לו\u05b9ם עולם",
+      "terms": [
+        "שלומ",
+        "עולמ"
+      ]
+    },
+    {
+      "input": "拉巴斯",
+      "terms": [
+        "拉",
+        "拉巴",
+        "巴",
+        "巴斯",
+        "斯"
+      ]
+    },
+    {
+      "input": "東京タワー",
+      "terms": [
+        "東",
+        "東京",
+        "京",
+        "京タ",
+        "タ",
+        "タワ",
+        "ワ",
+        "ワー",
+        "ー"
+      ]
+    },
+    {
+      "input": "ภาษาไทย",
+      "terms": [
+        "ภ",
+        "ภา",
+        "า",
+        "าษ",
+        "ษ",
+        "ษา",
+        "า",
+        "าไ",
+        "ไ",
+        "ไท",
+        "ท",
+        "ทย",
+        "ย"
+      ]
+    },
+    {
+      "input": "ท\u0e35\u0e48",
+      "terms": [
+        "ท\u0e35\u0e48"
+      ]
+    },
+    {
+      "input": "한국어 서울",
+      "terms": [
+        "한",
+        "한국",
+        "국",
+        "국어",
+        "어",
+        "서",
+        "서울",
+        "울"
+      ]
+    },
+    {
+      "input": "pizza 🍕 y café ☕",
+      "terms": [
+        "pizza",
+        "cafe"
+      ]
+    },
+    {
+      "input": "🍕🎉",
+      "terms": []
+    },
+    {
+      "input": "iPhone手机",
+      "terms": [
+        "iphone",
+        "手",
+        "手机",
+        "机"
+      ]
+    },
+    {
+      "input": "ｃａｆｅ",
+      "terms": [
+        "cafe"
+      ]
+    },
+    {
+      "input": "ЁЛКА мой",
+      "terms": [
+        "елка",
+        "мой"
+      ]
+    },
+    {
+      "input": "İSTANBUL ışık",
+      "terms": [
+        "istanbul",
+        "isik"
+      ]
+    },
+    {
+      "input": "1\ufe0f\u20e3",
+      "terms": [
+        "1"
+      ]
+    },
+    {
+      "input": "\u0301\u0301",
+      "terms": []
+    },
+    {
+      "input": "नमस\u094dत\u0947 द\u0941न\u093fय\u093e",
+      "terms": [
+        "नमस\u094dत\u0947",
+        "द\u0941न\u093fय\u093e"
+      ]
+    }
+  ],
+  "same_terms": [
+    [
+      "horario de atención",
+      "HORARIO DE ATENCION"
+    ],
+    [
+      "Nin\u0303o",
+      "nino"
+    ],
+    [
+      "cuál es la tensión máxima",
+      "cual es la tension maxima"
+    ],
+    [
+      "también",
+      "tambien"
+    ],
+    [
+      "año",
+      "ano"
+    ],
+    [
+      "café",
+      "cafe\u0301"
+    ],
+    [
+      "Ñandú",
+      "N\u0303andu\u0301"
+    ],
+    [
+      "Å",
+      "A\u030a"
+    ],
+    [
+      "Å",
+      "å"
+    ],
+    [
+      "Straße",
+      "STRASSE"
+    ],
+    [
+      "Straße",
+      "strasse"
+    ],
+    [
+      "ΟΔΟΣ",
+      "οδοσ"
+    ],
+    [
+      "ΟΔΟΣ",
+      "οδος"
+    ],
+    [
+      "İstanbul",
+      "istanbul"
+    ],
+    [
+      "ISPARTA",
+      "ısparta"
+    ],
+    [
+      "ＨＯＲＡＲＩＯ",
+      "horario"
+    ],
+    [
+      "Ｃａｆé",
+      "cafe"
+    ],
+    [
+      "ёлка",
+      "елка"
+    ],
+    [
+      "Москва",
+      "МОСКВА"
+    ],
+    [
+      "ש\u05b8\u05c1לו\u05b9ם",
+      "שלום"
+    ],
+    [
+      "أهلا",
+      "اهلا"
+    ],
+    [
+      "مرحبا",
+      "م\u064eر\u0652ح\u064eب\u064bا"
+    ],
+    [
+      "한국어",
+      "한국어"
+    ],
+    [
+      "ｶﾞ",
+      "ガ"
+    ],
+    [
+      "ガ",
+      "カ\u3099"
+    ],
+    [
+      "می\u200cخواهم",
+      "میخواهم"
+    ],
+    [
+      "Łódź",
+      "lodz"
+    ]
+  ],
+  "different_terms": [
+    [
+      "horario",
+      "horarios"
+    ],
+    [
+      "क\u093e",
+      "क"
+    ],
+    [
+      "pique macho",
+      "pique macha"
+    ],
+    [
+      "мой",
+      "мои"
+    ],
+    [
+      "か",
+      "が"
+    ],
+    [
+      "东京",
+      "北京"
+    ],
+    [
+      "ภาษา",
+      "ไทย"
+    ],
+    [
+      "die",
+      "dir"
+    ],
+    [
+      "Ελλάδα",
+      "Ελλάς"
+    ]
+  ],
+  "ids": [
+    {
+      "input": "",
+      "id": "cbf29ce484222325"
+    },
+    {
+      "input": "a",
+      "id": "af63dc4c8601ec8c"
+    },
+    {
+      "input": "foobar",
+      "id": "85944171f73967e8"
+    },
+    {
+      "input": "fact:flush the dns cache",
+      "id": "8d2c6bf7bac084e5"
+    },
+    {
+      "input": "procedure:register a new customer",
+      "id": "2901d0d6cecbf170"
+    },
+    {
+      "input": "knowledge:docs/guide.md#3",
+      "id": "b9114e28ac804380"
+    },
+    {
+      "input": "context:onboarding",
+      "id": "72cb35c9cef0f0ff"
+    },
+    {
+      "input": "image:router.jpg",
+      "id": "a80357fa61c4e954"
+    }
+  ],
+  "search_fold": [
+    {
+      "input": "Straße",
+      "folded": "strasse"
+    },
+    {
+      "input": "STRASSE",
+      "folded": "strasse"
+    },
+    {
+      "input": "İstanbul",
+      "folded": "istanbul"
+    },
+    {
+      "input": "ISPARTA ısparta",
+      "folded": "isparta isparta"
+    },
+    {
+      "input": "ΟΔΟΣ",
+      "folded": "οδοσ"
+    },
+    {
+      "input": "Ελληνικά",
+      "folded": "ελληνικα"
+    },
+    {
+      "input": "ＨＯＲＡＲＩＯ １２３",
+      "folded": "horario 123"
+    },
+    {
+      "input": "ﬁnal",
+      "folded": "final"
+    },
+    {
+      "input": "Łódź",
+      "folded": "lodz"
+    },
+    {
+      "input": "ёлка Мой",
+      "folded": "елка мой"
+    },
+    {
+      "input": "م\u064eر\u0652ح\u064eب\u064bا",
+      "folded": "مرحبا"
+    },
+    {
+      "input": "ש\u05b8\u05c1לו\u05b9ם",
+      "folded": "שלומ"
+    },
+    {
+      "input": "e\u0301",
+      "folded": "e"
+    },
+    {
+      "input": "한국어",
+      "folded": "한국어"
+    },
+    {
+      "input": "ह\u093fन\u094dद\u0940",
+      "folded": "ह\u093fन\u094dद\u0940"
+    },
+    {
+      "input": "ｶﾞ",
+      "folded": "ガ"
+    },
+    {
+      "input": "Ærø Đà Nẵng",
+      "folded": "aero da nang"
+    }
+  ],
+  "matches": [
+    {
+      "query": "horario de atencion",
+      "text": "Horario de atención: lunes a sábado",
+      "match": true
+    },
+    {
+      "query": "cafe",
+      "text": "El mejor café de La Paz",
+      "match": true
+    },
+    {
+      "query": "strasse",
+      "text": "Wohnen in der Straße am Fluss",
+      "match": true
+    },
+    {
+      "query": "ΟΔΟΣ",
+      "text": "Η οδός Ερμού",
+      "match": true
+    },
+    {
+      "query": "москва",
+      "text": "Столица — Москва",
+      "match": true
+    },
+    {
+      "query": "咖啡",
+      "text": "我们的咖啡馆在拉巴斯",
+      "match": true
+    },
+    {
+      "query": "咖茶",
+      "text": "我们的咖啡馆在拉巴斯",
+      "match": false
+    },
+    {
+      "query": "拉巴斯",
+      "text": "我们的咖啡馆在拉巴斯",
+      "match": true
+    },
+    {
+      "query": "กาแฟ",
+      "text": "ร\u0e49านกาแฟ",
+      "match": true
+    },
+    {
+      "query": "שלום",
+      "text": "ש\u05b8\u05c1לו\u05b9ם עולם",
+      "match": true
+    },
+    {
+      "query": "مرحبا",
+      "text": "م\u064eر\u0652ح\u064eب\u064bا",
+      "match": true
+    },
+    {
+      "query": "नमस\u094dत\u0947",
+      "text": "नमस\u094dत\u0947 द\u0941न\u093fय\u093e",
+      "match": true
+    },
+    {
+      "query": "pizza",
+      "text": "🍕 pizza",
+      "match": true
+    },
+    {
+      "query": "istanbul",
+      "text": "İSTANBUL",
+      "match": true
+    },
+    {
+      "query": "서울",
+      "text": "한국 서울시",
+      "match": true
+    },
+    {
+      "query": "coffee",
+      "text": "café",
+      "match": false
+    },
+    {
+      "query": "cual",
+      "text": "¿Cuál es?",
+      "match": false
+    },
+    {
+      "query": "",
+      "text": "anything",
+      "match": false
+    }
+  ]
+}

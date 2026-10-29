@@ -1,0 +1,9 @@
+{
+  "description": "Index entry 1 carries the wrong CRC for its record; the index CRC is correct.",
+  "error": "checksum",
+  "stage": "record",
+  "readable": [
+    0,
+    2
+  ]
+}

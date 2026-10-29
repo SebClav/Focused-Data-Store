@@ -1,0 +1,40 @@
+{
+  "description": "Attribute keys of different lengths: the file orders them by their encoding (shorter first), and `links` keeps the order it was written in.",
+  "minor": 0,
+  "writable": true,
+  "reproducible": true,
+  "meta": {
+    "name": "conformance",
+    "created": "2026-10-19",
+    "updated": "2026-10-19",
+    "embedding_model": "",
+    "embedding_dims": 0
+  },
+  "records": [
+    {
+      "id": "0000000000000001",
+      "kind": "fact",
+      "collection": "default",
+      "question": "question 1",
+      "body": "answer 1",
+      "title": "question 1",
+      "source": "conformance",
+      "verified_by": "human",
+      "last_verified": "2026-10-19",
+      "tokens": 2,
+      "embedding": null,
+      "type": "",
+      "attrs": {
+        "b": "2",
+        "a": "1",
+        "aa": "3",
+        "é": "4",
+        "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzz": "5"
+      },
+      "links": [
+        "z",
+        "a"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "head_of_good": "74fc9f04e65d4fe25ee7824167fb1473063a3592e1c4aef9e23c2f397d4ef04e",
+  "cases": [
+    {
+      "file": "good.jsonl",
+      "intact": true,
+      "broken_at": null,
+      "description": "A chain of four entries: n counts from 1, prev is the SHA-256 of the line before, zeros for the first."
+    },
+    {
+      "file": "edited.jsonl",
+      "intact": false,
+      "broken_at": 3,
+      "description": "Line 2 changed afterwards: line 3 no longer matches it, and the break is reported there."
+    },
+    {
+      "file": "removed.jsonl",
+      "intact": false,
+      "broken_at": 2,
+      "description": "Line 2 removed: the numbering skips."
+    },
+    {
+      "file": "inserted.jsonl",
+      "intact": false,
+      "broken_at": 3,
+      "description": "A line repeated: its number is wrong where it was put."
+    },
+    {
+      "file": "swapped.jsonl",
+      "intact": false,
+      "broken_at": 2,
+      "description": "Two lines exchanged."
+    },
+    {
+      "file": "not_json.jsonl",
+      "intact": false,
+      "broken_at": 3,
+      "description": "A line that is not JSON."
+    }
+  ]
+}

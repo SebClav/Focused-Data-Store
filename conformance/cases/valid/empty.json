@@ -1,0 +1,14 @@
+{
+  "description": "No records: the smallest legal file.",
+  "minor": 0,
+  "writable": true,
+  "reproducible": true,
+  "meta": {
+    "name": "empty",
+    "created": "2026-10-19",
+    "updated": "2026-10-19",
+    "embedding_model": "",
+    "embedding_dims": 0
+  },
+  "records": []
+}

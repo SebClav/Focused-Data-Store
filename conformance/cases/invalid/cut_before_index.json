@@ -1,0 +1,5 @@
+{
+  "description": "A good file missing the last 10 bytes of its index.",
+  "error": "truncated",
+  "stage": "open"
+}

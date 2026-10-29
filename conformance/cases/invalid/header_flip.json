@@ -1,0 +1,5 @@
+{
+  "description": "One bit flipped in the record count.",
+  "error": "checksum",
+  "stage": "open"
+}

@@ -1,0 +1,85 @@
+{
+  "description": "The deterministic parts of the guard (SPEC.md §11): the check, the guard's template filling, and the redaction of sensitive records. Every implementation must reproduce every case. `because` lists the NAMES of the policies that decided: the ones that deny when the answer is deny, the ones that matched and passed when it is allow.",
+
+  "policies": [
+    {"name": "fridge", "subject": "fridge.chamber3.setpoint", "action": "set", "rule": "range", "min": "-20", "max": "-16", "unit": "C"},
+    {"name": "wide", "subject": "fridge.*", "action": "set", "rule": "range", "min": "-30", "max": "0"},
+    {"name": "prod", "subject": "db.prod.*", "action": "drop", "rule": "deny"},
+    {"name": "backup", "subject": "backup.target", "action": "write", "rule": "one_of", "values": "copy,staging"},
+    {"name": "list", "subject": "list.x", "action": "pick", "rule": "one_of", "values": "a, b"},
+    {"name": "vault", "subject": "vault.*", "action": "*", "rule": "deny"},
+    {"name": "broken", "subject": "broken.*", "action": "set", "rule": "range", "min": "x", "max": "5"},
+    {"name": "infinite", "subject": "infinite.*", "action": "set", "rule": "range", "min": "-inf", "max": "inf"},
+    {"name": "odd", "subject": "odd.*", "action": "set", "rule": "mystery"},
+    {"name": "no_values", "subject": "empty.*", "action": "set", "rule": "one_of"},
+    {"name": "by_a_model", "subject": "fridge.chamber3.setpoint", "action": "set", "rule": "range", "min": "-80", "max": "40", "verified_by": "model:ops"}
+  ],
+
+  "checks": [
+    {"subject": "fridge.chamber3.setpoint", "action": "set", "value": "-18", "decision": "allow", "default_applied": false, "because": ["fridge", "wide"]},
+    {"subject": "fridge.chamber3.setpoint", "action": "set", "value": "-20", "decision": "allow", "default_applied": false, "because": ["fridge", "wide"], "note": "bounds are inclusive"},
+    {"subject": "fridge.chamber3.setpoint", "action": "set", "value": "-16", "decision": "allow", "default_applied": false, "because": ["fridge", "wide"]},
+    {"subject": "fridge.chamber3.setpoint", "action": "set", "value": " -18 ", "decision": "allow", "default_applied": false, "because": ["fridge", "wide"], "note": "white space around a value is ignored"},
+    {"subject": "fridge.chamber3.setpoint", "action": "set", "value": "-1.8e1", "decision": "allow", "default_applied": false, "because": ["fridge", "wide"], "note": "an exponent is a number"},
+    {"subject": "fridge.chamber3.setpoint", "action": "set", "value": "-15", "decision": "deny", "default_applied": false, "because": ["fridge"], "note": "inside `wide`, outside `fridge`: one denial is enough, and only the denying policy is listed"},
+    {"subject": "fridge.chamber3.setpoint", "action": "set", "value": "-40", "decision": "deny", "default_applied": false, "because": ["fridge", "wide"]},
+    {"subject": "fridge.chamber3.setpoint", "action": "set", "value": "warm", "decision": "deny", "default_applied": false, "because": ["fridge", "wide"]},
+    {"subject": "fridge.chamber3.setpoint", "action": "set", "value": "", "decision": "deny", "default_applied": false, "because": ["fridge", "wide"], "note": "an empty value is not a number"},
+    {"subject": "fridge.chamber3.setpoint", "action": "set", "value": null, "decision": "deny", "default_applied": false, "because": ["fridge", "wide"], "note": "a range with no value cannot be met"},
+    {"subject": "fridge.chamber3.setpoint", "action": "set", "value": "NaN", "decision": "deny", "default_applied": false, "because": ["fridge", "wide"]},
+    {"subject": "fridge.chamber3.setpoint", "action": "set", "value": "inf", "decision": "deny", "default_applied": false, "because": ["fridge", "wide"]},
+    {"subject": "fridge.chamber3.setpoint", "action": "set", "value": "1e999", "decision": "deny", "default_applied": false, "because": ["fridge", "wide"], "note": "a number too large to hold is not a finite number"},
+    {"subject": "fridge.chamber3.setpoint", "action": "set", "value": "-1_8", "decision": "deny", "default_applied": false, "because": ["fridge", "wide"], "note": "underscores do not make a number"},
+    {"subject": "fridge.chamber3.setpoint", "action": "set", "value": "١٨", "decision": "deny", "default_applied": false, "because": ["fridge", "wide"], "note": "digits of other alphabets do not make a number"},
+    {"subject": "fridge.chamber3.setpoint", "action": "read", "value": null, "decision": "allow", "default_applied": true, "because": [], "note": "another action is not covered"},
+    {"subject": "fridge.chamber4.setpoint", "action": "set", "value": "-5", "decision": "allow", "default_applied": false, "because": ["wide"], "note": "a prefix pattern covers it; the exact one does not"},
+    {"subject": "db.prod.customers", "action": "drop", "value": null, "decision": "deny", "default_applied": false, "because": ["prod"]},
+    {"subject": "db.prod", "action": "drop", "value": null, "decision": "allow", "default_applied": true, "because": [], "note": "`db.prod.*` needs the dot: it is a prefix, not a word"},
+    {"subject": "db.prod.customers", "action": "read", "value": null, "decision": "allow", "default_applied": true, "because": []},
+    {"subject": "backup.target", "action": "write", "value": "copy", "decision": "allow", "default_applied": false, "because": ["backup"]},
+    {"subject": "backup.target", "action": "write", "value": "prod", "decision": "deny", "default_applied": false, "because": ["backup"]},
+    {"subject": "backup.target", "action": "write", "value": null, "decision": "deny", "default_applied": false, "because": ["backup"]},
+    {"subject": "list.x", "action": "pick", "value": "b", "decision": "allow", "default_applied": false, "because": ["list"], "note": "values are trimmed: `a, b` is a and b"},
+    {"subject": "list.x", "action": "pick", "value": " b ", "decision": "allow", "default_applied": false, "because": ["list"]},
+    {"subject": "vault.keys", "action": "read", "value": null, "decision": "deny", "default_applied": false, "because": ["vault"], "note": "action * covers every action"},
+    {"subject": "broken.x", "action": "set", "value": "1", "decision": "deny", "default_applied": false, "because": ["broken"], "note": "a policy that cannot be evaluated denies"},
+    {"subject": "infinite.x", "action": "set", "value": "100", "decision": "deny", "default_applied": false, "because": ["infinite"], "note": "bounds must be finite numbers too"},
+    {"subject": "odd.x", "action": "set", "value": "1", "decision": "deny", "default_applied": false, "because": ["odd"], "note": "an unknown rule denies"},
+    {"subject": "empty.x", "action": "set", "value": "1", "decision": "deny", "default_applied": false, "because": ["no_values"]},
+    {"subject": "garage.door", "action": "open", "value": null, "decision": "allow", "default_applied": true, "because": []},
+    {"subject": "garage.door", "action": "open", "value": null, "default": "deny", "decision": "deny", "default_applied": true, "because": [], "note": "with default deny, no match means no"},
+    {"subject": "fridge.chamber3.setpoint", "action": "set", "value": "-18", "default": "deny", "decision": "allow", "default_applied": false, "because": ["fridge", "wide"], "note": "the default only applies when nothing matches"}
+  ],
+
+  "fill": [
+    {"template": "fridge.{chamber}.setpoint", "args": {"chamber": "chamber3", "celsius": -40}, "expected": "fridge.chamber3.setpoint"},
+    {"template": "{celsius}", "args": {"celsius": -40}, "expected": "-40"},
+    {"template": "{celsius}", "args": {"celsius": 1.5}, "expected": "1.5"},
+    {"template": "{flag}", "args": {"flag": false}, "expected": "false"},
+    {"template": "{flag}", "args": {"flag": true}, "expected": "true"},
+    {"template": "plain", "args": {}, "expected": "plain"},
+    {"template": "{a}.{b}.{a}", "args": {"a": "x", "b": "y"}, "expected": "x.y.x"},
+    {"template": "a.{missing}", "args": {"chamber": "x"}, "expected": null, "note": "an argument the call lacks: it cannot be checked"},
+    {"template": "{unclosed", "args": {"unclosed": "x"}, "expected": null},
+    {"template": "{nested}", "args": {"nested": {"a": 1}}, "expected": null, "note": "objects are not values"},
+    {"template": "{list}", "args": {"list": [1, 2]}, "expected": null},
+    {"template": "{nothing}", "args": {"nothing": null}, "expected": null}
+  ],
+
+  "redact": {
+    "records": [
+      {"name": "address", "title": "address of Juan Perez", "body": "Juan lives at Calle Secreta 99", "attrs": {"sensitivity": "personal", "derived": "The customer lives in Lima", "dni": "4455667"}},
+      {"name": "phone", "title": "phone of Marta Rojas", "body": "Marta: 999 888 777", "attrs": {"sensitivity": "personal"}},
+      {"name": "key", "title": "server password", "body": "hunter2", "attrs": {"sensitivity": "secret"}},
+      {"name": "hours", "title": "opening hours", "body": "Mon to Sat 7 to 20", "attrs": {}},
+      {"name": "blank", "title": "blank level", "body": "visible", "attrs": {"sensitivity": "  "}}
+    ],
+    "cases": [
+      {"clearance": [], "bodies": {"address": "The customer lives in Lima", "phone": "[protected: personal]", "key": "[protected: secret]", "hours": "Mon to Sat 7 to 20", "blank": "visible"}},
+      {"clearance": ["personal"], "bodies": {"address": "Juan lives at Calle Secreta 99", "phone": "Marta: 999 888 777", "key": "[protected: secret]", "hours": "Mon to Sat 7 to 20", "blank": "visible"}},
+      {"clearance": ["PERSONAL", "Secret"], "bodies": {"address": "Juan lives at Calle Secreta 99", "phone": "Marta: 999 888 777", "key": "hunter2", "hours": "Mon to Sat 7 to 20", "blank": "visible"}, "note": "levels compare without regard to case"}
+    ],
+    "stand_in_attrs": {"sensitivity": "personal", "protected": "true"},
+    "stand_in_source": "[protected]"
+  }
+}

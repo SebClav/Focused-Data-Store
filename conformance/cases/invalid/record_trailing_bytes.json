@@ -1,0 +1,8 @@
+{
+  "description": "A byte after the record's map.",
+  "error": "malformed",
+  "stage": "record",
+  "readable": [
+    0
+  ]
+}

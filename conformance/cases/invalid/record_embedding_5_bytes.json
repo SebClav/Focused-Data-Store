@@ -1,0 +1,8 @@
+{
+  "description": "embedding is 5 bytes, not a multiple of 4.",
+  "error": "malformed",
+  "stage": "record",
+  "readable": [
+    0
+  ]
+}

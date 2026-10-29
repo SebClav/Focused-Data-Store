@@ -1,0 +1,4 @@
+{"agent":"claude-r","at":"2026-10-23T10:00:00Z","decision":"allow","n":1,"prev":"0000000000000000000000000000000000000000000000000000000000000000","tool":"set_temperature"}
+{"agent":"claude-r","at":"2026-10-23T10:00:02Z","decision":"deny","n":3,"prev":"ddcd9fd4d9665f70f8f85f149521b8c3cfc6e1267c3882dc0cc25bdf65fa1cfb","tool":"run_sql_drop"}
+{"agent":"claude-r","at":"2026-10-23T10:00:01Z","decision":"deny","n":2,"prev":"3c0fdcf9f72c213467bd32ce18cdf03016434588c14175501297adecdf1f93d6","reason":"Below -20 °C the stock is damaged.","tool":"set_temperature"}
+{"agent":"claude-e","at":"2026-10-23T10:00:03Z","decision":"allow","n":4,"prev":"a421638b82a0e333ee02cabbe9bbab00304a76dfff21d133fc3ae13c2f839282","tool":"list_things"}

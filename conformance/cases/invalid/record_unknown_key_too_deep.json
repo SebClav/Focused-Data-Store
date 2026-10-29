@@ -1,0 +1,8 @@
+{
+  "description": "An unknown key whose value is nested 64 arrays deep (limit 32).",
+  "error": "malformed",
+  "stage": "record",
+  "readable": [
+    0
+  ]
+}

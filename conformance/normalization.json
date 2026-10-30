@@ -21,10 +21,12 @@
       "input": "¿Cuál es la tensión máxima?",
       "canonical": "cuál es la tensión máxima",
       "tokens": [
+        "cuál",
         "tensión",
         "máxima"
       ],
       "key": [
+        "cuál",
         "máxima",
         "tensión"
       ]
@@ -209,7 +211,7 @@
       "LM317 reference voltage?"
     ],
     [
-      "¿Cómo reinicio el router?",
+      "¿Qué reinicio del router?",
       "reinicio router"
     ],
     [
@@ -240,6 +242,34 @@
       "is it not allowed"
     ],
     [
+      "can users delete records",
+      "should users delete records"
+    ],
+    [
+      "can users delete records",
+      "who can delete records"
+    ],
+    [
+      "can users delete records",
+      "how can users delete records"
+    ],
+    [
+      "what is the refund window",
+      "when is the refund window"
+    ],
+    [
+      "where is the office",
+      "which is the office"
+    ],
+    [
+      "quién puede borrar registros",
+      "cómo puede borrar registros"
+    ],
+    [
+      "cuándo abre el café",
+      "dónde abre el café"
+    ],
+    [
       "abrir el menú",
       "no abrir el menú"
     ],
@@ -253,6 +283,7 @@
     {
       "input": "¿Cuál es el HORARIO de atención?",
       "terms": [
+        "cual",
         "horario",
         "atencion"
       ]
@@ -858,7 +889,7 @@
     {
       "query": "cual",
       "text": "¿Cuál es?",
-      "match": false
+      "match": true
     },
     {
       "query": "",

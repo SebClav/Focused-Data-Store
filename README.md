@@ -74,13 +74,20 @@ the audit file. `FDS.md` is a ready-made instruction file for such an agent.
   process that can read the `.fds` files reads everything in them. Use file
   permissions where that matters.
 - **`exact` is about the words, not the meaning.** Stage 1 compares the words of
-  the question after normalisation. Negations count (`no`, `not`, `cannot`), but
-  question words and auxiliaries (`who`, `how`, `can`, `should`) are ignored, so
-  questions that differ only by one of them share an answer. See SPEC.md §4.2.
+  the question after normalisation. Negations, interrogatives and modals count
+  (`not`, `who`, `how`, `can`, `should`), so questions that differ by one of them
+  are different questions. Words like `what`, `is` and `the` are ignored, and a
+  paraphrase that shares no word is not `exact`. See SPEC.md §4.2.
 - **A question is one fact per database.** The identifier comes from the
   question alone (SPEC.md §3.1), so the same question in another collection
   replaces the fact, and `fact add` warns when it does. Separate knowledge
   belongs in separate sectors.
+- **Retrieval is lexical.** Stage 2 ranks by words (BM25), with a half-weight
+  match for plurals and close forms. It does not understand meaning; optional
+  embeddings help, and a query that shares no word with a record can miss it.
+- **No warranty, and nobody has reviewed it.** This is a personal, experimental
+  tool. Where the records say `human`, the tool only reads a label: it does not
+  know who wrote it.
 - **The figures are early.** The numbers in `CHANGELOG.md` come from small
   test sets written by the same author as the records. `research/README.md`
   says what can and cannot be re-run here.

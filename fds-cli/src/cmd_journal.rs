@@ -5,7 +5,7 @@ use std::path::Path;
 use serde_json::json;
 
 use crate::cli::{JournalCmd, JournalSrc};
-use crate::{audit, db, journal, print_json, sectors};
+use crate::{audit, db, journal, ops, print_json, sectors, text};
 
 /// The entries a `journal` command works on, newest first, and a name for the page.
 pub fn journal_entries(
@@ -124,6 +124,42 @@ pub fn journal_cmd(cmd: &JournalCmd, db_file: Option<&Path>, json_out: bool) -> 
                 print_json(
                     &json!({"branch": to, "commit": done.commit, "unchanged": done.unchanged}),
                 );
+            }
+        }
+        JournalCmd::Review {
+            id,
+            sector,
+            manifest,
+        } => {
+            let path = match sector {
+                Some(name) => {
+                    let m = sectors::Manifest::load(manifest)?;
+                    m.path_of(m.get(name).ok_or(format!("no sector `{name}`"))?)
+                }
+                None => db::locate(db_file)?,
+            };
+            let _lock = db::lock(&path)?;
+            let (mut meta, mut records) = db::load(&path)?;
+            let i = db::resolve_id(&records, id)?;
+            let filter = journal::Filter::default();
+            if journal::entries(&records[i..=i], "", &filter).is_empty() {
+                return Err(format!("`{id}` is not a journal entry"));
+            }
+            let full = records[i].id.clone();
+            let was = records[i].verified_by.clone();
+            if was == "human" {
+                eprintln!("{} was already reviewed by a person.", &full[..full.len().min(12)]);
+            } else {
+                let edit = ops::Edit {
+                    verify: true,
+                    ..Default::default()
+                };
+                ops::edit(&mut records, &full, edit, &text::today())?;
+                db::save(&path, &mut meta, &records)?;
+                eprintln!("{} is now reviewed by a person; it was {was}.", &full[..full.len().min(12)]);
+            }
+            if json_out {
+                print_json(&json!({"id": full, "was_verified_by": was, "reviewed": true}));
             }
         }
     }

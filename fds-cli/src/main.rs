@@ -17,6 +17,7 @@ mod ollama;
 mod ops;
 mod policy;
 mod query;
+mod review;
 mod sectors;
 mod sensitive;
 mod serve;
@@ -94,6 +95,7 @@ async fn run(cli: Cli) -> Result<u8, String> {
     match &cli.command {
         Command::Sector(cmd) => return sector_cmd(cmd, json_out),
         Command::Journal(cmd) => return journal_cmd(cmd, cli.db.as_deref(), json_out),
+        Command::Review(args) => return review::review_cmd(args, cli.db.as_deref(), json_out),
         Command::Guard {
             policies,
             agent,
@@ -692,6 +694,7 @@ async fn run(cli: Cli) -> Result<u8, String> {
         }
         Command::Sector(_)
         | Command::Journal(_)
+        | Command::Review(_)
         | Command::Check { .. }
         | Command::Guard { .. }
         | Command::Audit(_) => unreachable!(),

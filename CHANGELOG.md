@@ -4,6 +4,12 @@
 
 ### Added
 
+- `fds review` lists the lines agents flagged in the journal (`--file path:line[-end]`, `path#L12-L20`, or `path:line` in the
+  summary or reason) and opens the editor on the first one (`--editor`, `$FDS_EDITOR`; VS Code by default). It never writes.
+- `fds journal review <id>` marks a journal entry as reviewed by a person (`--sector` and `--manifest` for an entry in a
+  sector). The entry stays where it is; `fds sector promote` is what moves one. It is a write, so `--read-only` refuses it.
+  It is a claim that a person looked, like `sector promote`: the tool cannot tell who ran it.
+
 - `--read-only`, a global flag: the command line refuses every command that
   creates or modifies a database, a sector or the audit file (`init`, `add`,
   `import`, `fact`, `proc`, `context set|import`, `log`, `journal publish`,

@@ -43,6 +43,22 @@ fds status
 `fds <command> --help` lists the options, and `fds-cli/GUIDE.md` walks through
 every command.
 
+## Reviewing what agents flagged
+
+An agent names the lines it wants a person to look at: `fds log "Order validation" --by backend --file backend/server.js:42-58`
+(or `path:line` inside the summary or the reason). Then, from the project folder:
+
+```
+fds review            # list the flagged lines and open the editor on the first one
+fds review --list     # only list them
+fds journal review ID # mark an entry as reviewed by a person
+```
+
+`fds review` opens VS Code (or `--editor`, or `$FDS_EDITOR`) at the flagged line. `fds journal review` marks the entry as
+reviewed; it stays where it is, and `fds sector promote` is what moves it to another sector. Both are claims that a person
+looked: the tool cannot tell who ran them. Editor integrations are separate projects: they read the same flags from
+`fds --json journal show` and approve with `fds journal review`.
+
 ## Several agents
 
 Give every agent a sector: its own database file, which it can write, plus the

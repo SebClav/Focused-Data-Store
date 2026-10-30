@@ -307,3 +307,72 @@ fn a_different_question_word_or_modal_is_not_an_exact_match() {
         assert_ne!(confidence(other), "exact", "{other}");
     }
 }
+
+#[test]
+fn review_lists_the_lines_an_agent_flagged() {
+    let sandbox = Sandbox::new();
+    ok(&sandbox.fds(&["init", "t"]));
+    ok(&sandbox.fds(&[
+        "--db",
+        "t.fds",
+        "log",
+        "Order server",
+        "--why",
+        "Unsure about the limit, see backend/server.js:15",
+        "--file",
+        "backend/server.js:12-18",
+        "--file",
+        "backend/HANDOFF.md",
+        "--by",
+        "backend",
+    ]));
+    let out = sandbox.fds(&["--db", "t.fds", "--json", "review", "--list"]);
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let rows: Vec<(String, Option<u64>, Option<u64>)> = json
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| (r["path"].as_str().unwrap().to_string(), r["start"].as_u64(), r["end"].as_u64()))
+        .collect();
+    assert!(rows.contains(&("backend/server.js".into(), Some(12), Some(18))), "{rows:?}");
+    assert!(rows.contains(&("backend/server.js".into(), Some(15), Some(15))), "{rows:?}");
+    assert!(rows.contains(&("backend/HANDOFF.md".into(), None, None)), "{rows:?}");
+    // reading is allowed under --read-only: review never writes
+    let ro = sandbox.fds(&["--read-only", "--db", "t.fds", "review", "--list"]);
+    assert!(ro.status.success(), "{}", text(&ro.stderr));
+}
+
+#[test]
+fn a_person_marks_a_journal_entry_reviewed_and_nothing_else() {
+    let sandbox = Sandbox::new();
+    ok(&sandbox.fds(&["init", "t"]));
+    ok(&sandbox.fds(&["--db", "t.fds", "log", "Order server", "--by", "backend", "--file", "a.js:3-5"]));
+    let fact = sandbox.fds(&["--db", "t.fds", "--json", "fact", "add", "How to ship?", "By post"]);
+    let fact_id = serde_json::from_slice::<serde_json::Value>(&fact.stdout).unwrap()["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let journal = || {
+        let out = sandbox.fds(&["--db", "t.fds", "--json", "journal", "show"]);
+        serde_json::from_slice::<serde_json::Value>(&out.stdout).unwrap()
+    };
+    let before = journal();
+    let id = before[0]["id"].as_str().unwrap().to_string();
+    assert_eq!(before[0]["reviewed"], false);
+
+    // --read-only refuses, and the entry stays waiting
+    assert!(!sandbox.fds(&["--read-only", "--db", "t.fds", "journal", "review", &id]).status.success());
+    assert_eq!(journal()[0]["reviewed"], false);
+
+    ok(&sandbox.fds(&["--db", "t.fds", "journal", "review", &id]));
+    let after = journal();
+    assert_eq!(after[0]["reviewed"], true);
+    assert_eq!(after[0]["id"], before[0]["id"], "reviewing must not change the id");
+    // a second time is not an error
+    ok(&sandbox.fds(&["--db", "t.fds", "journal", "review", &id]));
+
+    // a fact is not a journal entry
+    let not_entry = sandbox.fds(&["--db", "t.fds", "journal", "review", &fact_id]);
+    assert!(!not_entry.status.success());
+    assert!(text(&not_entry.stderr).contains("not a journal entry"), "{}", text(&not_entry.stderr));
+}

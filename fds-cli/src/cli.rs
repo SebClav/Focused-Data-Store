@@ -111,6 +111,8 @@ pub enum Command {
     /// Read, export or publish the change journal
     #[command(subcommand)]
     Journal(JournalCmd),
+    /// List the lines agents flagged in the journal and open the editor on them
+    Review(ReviewArgs),
     /// Ask whether an action breaks a policy: allow (exit 0) or deny (exit 3), with no model
     Check {
         /// What the action touches, e.g. fridge.chamber3.setpoint
@@ -252,7 +254,10 @@ impl Command {
             Command::Context(cmd) => {
                 matches!(cmd, ContextCmd::Set { .. } | ContextCmd::Import { .. })
             }
-            Command::Journal(cmd) => matches!(cmd, JournalCmd::Publish { .. }),
+            Command::Journal(cmd) => {
+                matches!(cmd, JournalCmd::Publish { .. } | JournalCmd::Review { .. })
+            }
+            Command::Review(_) => false,
             Command::Policy(cmd) => matches!(cmd, PolicyCmd::Add { .. }),
             Command::Sector(cmd) => !matches!(cmd, SectorCmd::Ls { .. }),
             Command::Mcp { write, .. } => *write,
@@ -393,6 +398,28 @@ pub struct JournalSrc {
     pub audit: Option<PathBuf>,
 }
 
+/// `fds review`: where agents asked a person to look, and the editor opened there.
+#[derive(clap::Args, Clone)]
+pub struct ReviewArgs {
+    #[command(flatten)]
+    pub src: JournalSrc,
+    /// Only list the flagged lines; do not open the editor
+    #[arg(long)]
+    pub list: bool,
+    /// Include entries a person already reviewed
+    #[arg(long)]
+    pub all: bool,
+    /// Only the entry whose id starts with this
+    #[arg(long, value_name = "ID")]
+    pub entry: Option<String>,
+    /// The project folder the flagged paths are relative to (default: this directory)
+    #[arg(long, value_name = "DIR")]
+    pub root: Option<PathBuf>,
+    /// The editor command (default: $FDS_EDITOR, then `code`)
+    #[arg(long, value_name = "CMD")]
+    pub editor: Option<String>,
+}
+
 #[derive(Subcommand)]
 pub enum JournalCmd {
     /// List the entries, newest first
@@ -424,6 +451,16 @@ pub enum JournalCmd {
         /// The branch that receives the journal
         #[arg(long, default_value = journal::DEFAULT_BRANCH)]
         to: String,
+    },
+    /// Mark an entry as reviewed by a person (what the editor's Approve button runs).
+    /// The entry stays where it is; `fds sector promote` is what moves it to another sector
+    Review {
+        id: String,
+        /// The sector it lives in, when the journal is read across sectors
+        #[arg(long, value_name = "SECTOR")]
+        sector: Option<String>,
+        #[arg(long, default_value = sectors::MANIFEST, value_name = "MANIFEST")]
+        manifest: PathBuf,
     },
 }
 
@@ -545,6 +582,7 @@ mod tests {
             &["sector", "new", "sales"],
             &["sector", "key", "sales"],
             &["sector", "promote", "id", "--from", "a", "--to", "b"],
+            &["journal", "review", "id"],
         ] {
             assert!(writes(args), "{args:?} should be a write");
         }

@@ -1,0 +1,94 @@
+{
+  "description": "All three kinds; every optional field present at least once. Some(\"\") and an empty embedding are different from absent, and must survive.",
+  "minor": 0,
+  "writable": true,
+  "reproducible": true,
+  "meta": {
+    "name": "conformance",
+    "created": "2026-10-19",
+    "updated": "2026-10-19",
+    "embedding_model": "all-minilm",
+    "embedding_dims": 4
+  },
+  "records": [
+    {
+      "id": "0000000000000001",
+      "kind": "fact",
+      "collection": "default",
+      "question": "question 1",
+      "body": "answer 1",
+      "title": "question 1",
+      "source": "conformance",
+      "verified_by": "human",
+      "last_verified": "2026-10-19",
+      "tokens": 2,
+      "embedding": null,
+      "type": "",
+      "attrs": {},
+      "links": []
+    },
+    {
+      "id": "0000000000000002",
+      "kind": "procedure",
+      "collection": "default",
+      "question": "flush the dns cache",
+      "body": "{\"steps\":[{\"action\":\"run\",\"command\":\"ipconfig /flushdns\"}]}",
+      "title": "question 2",
+      "source": "conformance",
+      "verified_by": "human",
+      "last_verified": "2026-10-19",
+      "tokens": 2,
+      "embedding": null,
+      "type": "command",
+      "attrs": {
+        "shell": "powershell"
+      },
+      "links": []
+    },
+    {
+      "id": "0000000000000003",
+      "kind": "knowledge",
+      "collection": "default",
+      "question": null,
+      "body": "Four yellow LAN ports, one blue WAN. See [[reset the router]].",
+      "title": "Rear panel of the router",
+      "source": "conformance",
+      "verified_by": "human",
+      "last_verified": "2026-10-19",
+      "tokens": 12,
+      "embedding": [
+        0.25,
+        -0.5,
+        1.0,
+        0.0
+      ],
+      "type": "image",
+      "attrs": {
+        "file": "photos/router.jpg",
+        "described_by": "moondream",
+        "x": "1",
+        "yy": "2"
+      },
+      "links": [
+        "reset the router",
+        "router admin address"
+      ]
+    },
+    {
+      "id": "0000000000000004",
+      "kind": "fact",
+      "collection": "default",
+      "question": "",
+      "body": "answer 4",
+      "title": "question 4",
+      "source": "conformance",
+      "verified_by": "human",
+      "last_verified": "2026-10-19",
+      "tokens": 2,
+      "embedding": [],
+      "type": "",
+      "attrs": {},
+      "links": []
+    }
+  ]
+}

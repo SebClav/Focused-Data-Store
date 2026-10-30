@@ -1,0 +1,8 @@
+{
+  "description": "An unknown key whose value is an indefinite-length array: skipping does not excuse it (R3).",
+  "error": "malformed",
+  "stage": "record",
+  "readable": [
+    0
+  ]
+}

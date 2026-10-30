@@ -1,0 +1,5 @@
+{
+  "description": "A header (with a correct CRC) that claims a million records: the index would run past the end of the file. It must be an error, not an allocation.",
+  "error": "truncated",
+  "stage": "open"
+}

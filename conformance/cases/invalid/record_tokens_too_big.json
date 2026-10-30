@@ -1,0 +1,8 @@
+{
+  "description": "tokens does not fit in 32 bits.",
+  "error": "malformed",
+  "stage": "record",
+  "readable": [
+    0
+  ]
+}

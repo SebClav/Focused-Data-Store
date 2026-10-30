@@ -1,0 +1,5 @@
+{
+  "description": "Zero bytes: an interrupted copy, not a foreign file.",
+  "error": "truncated",
+  "stage": "open"
+}

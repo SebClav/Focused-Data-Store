@@ -1,0 +1,8 @@
+{
+  "description": "A link is an integer.",
+  "error": "malformed",
+  "stage": "record",
+  "readable": [
+    0
+  ]
+}

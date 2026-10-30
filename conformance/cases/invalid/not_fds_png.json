@@ -1,0 +1,5 @@
+{
+  "description": "A PNG: its magic is the same shape as ours and differs at byte 1.",
+  "error": "not_fds",
+  "stage": "open"
+}

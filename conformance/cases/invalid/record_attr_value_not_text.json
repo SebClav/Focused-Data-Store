@@ -1,0 +1,8 @@
+{
+  "description": "An attribute value is an integer.",
+  "error": "malformed",
+  "stage": "record",
+  "readable": [
+    0
+  ]
+}

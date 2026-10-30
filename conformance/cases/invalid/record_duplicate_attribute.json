@@ -1,0 +1,8 @@
+{
+  "description": "The attribute `k` appears twice.",
+  "error": "malformed",
+  "stage": "record",
+  "readable": [
+    0
+  ]
+}

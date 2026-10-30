@@ -1,0 +1,23 @@
+[package]
+name = "fds-cli"
+version = "0.1.0"
+edition = "2021"
+description = "FDS (Focused Model Data Store): a database for knowledge that AI systems consume"
+license = "Apache-2.0"
+
+[[bin]]
+name = "fds"
+path = "src/main.rs"
+
+[dependencies]
+fds = { path = "../fds-core" }
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+regex = "1"
+tokio = { version = "1", features = ["full"] }
+axum = "0.7"
+reqwest = { version = "0.12", default-features = false, features = ["json"] }
+sha2 = "0.10"
+unicode-normalization = "0.1"
+base64 = "0.22"

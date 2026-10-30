@@ -1,0 +1,8 @@
+{
+  "description": "The record's last item is cut short inside its own bytes.",
+  "error": "malformed",
+  "stage": "record",
+  "readable": [
+    0
+  ]
+}

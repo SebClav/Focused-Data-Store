@@ -1,0 +1,9 @@
+{
+  "description": "Index entry 1 points into the header; the index CRC is correct.",
+  "error": "malformed",
+  "stage": "record",
+  "readable": [
+    0,
+    2
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "description": "The first 5 bytes of a good file.",
+  "error": "truncated",
+  "stage": "open"
+}

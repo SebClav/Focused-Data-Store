@@ -1,0 +1,8 @@
+{
+  "description": "A text string with indefinite length.",
+  "error": "malformed",
+  "stage": "record",
+  "readable": [
+    0
+  ]
+}

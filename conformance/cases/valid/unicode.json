@@ -1,0 +1,31 @@
+{
+  "description": "Text is UTF-8, including a newline, a NUL, an emoji and a character outside the BMP.",
+  "minor": 0,
+  "writable": true,
+  "reproducible": true,
+  "meta": {
+    "name": "ñandú — 日本語",
+    "created": "2026-10-19",
+    "updated": "2026-10-19",
+    "embedding_model": "",
+    "embedding_dims": 0
+  },
+  "records": [
+    {
+      "id": "0000000000000001",
+      "kind": "fact",
+      "collection": "default",
+      "question": "¿Cuál es la tensión máxima?",
+      "body": "Línea 1\nLínea 2\r\n\ttabulada, con NUL \u0000 y emoji 😀 y 𝔘𝔫𝔦𝔠𝔬𝔡𝔢",
+      "title": "日本語のテキスト",
+      "source": "conformance",
+      "verified_by": "human",
+      "last_verified": "2026-10-19",
+      "tokens": 2,
+      "embedding": null,
+      "type": "",
+      "attrs": {},
+      "links": []
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "description": "Keys in reverse order, `tokens` as a 2-byte integer, `id` with a 2-byte length head, `question` as null: all legal to read, none legal to write. A reader accepts them; a writer's output differs.",
+  "minor": 0,
+  "writable": true,
+  "reproducible": false,
+  "meta": {
+    "name": "conformance",
+    "created": "2026-10-19",
+    "updated": "2026-10-19",
+    "embedding_model": "",
+    "embedding_dims": 0
+  },
+  "records": [
+    {
+      "id": "0000000000000001",
+      "kind": "fact",
+      "collection": "default",
+      "question": null,
+      "body": "answer 1",
+      "title": "question 1",
+      "source": "conformance",
+      "verified_by": "human",
+      "last_verified": "2026-10-19",
+      "tokens": 2,
+      "embedding": null,
+      "type": "",
+      "attrs": {},
+      "links": []
+    }
+  ]
+}

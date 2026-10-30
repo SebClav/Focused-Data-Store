@@ -1,0 +1,8 @@
+{
+  "description": "The required key `title` is absent.",
+  "error": "malformed",
+  "stage": "record",
+  "readable": [
+    0
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "description": "Written by format 4.3: unknown keys (every CBOR type) in the metadata and in the records, non-zero reserved bytes, application_id 7, user_version 9. A 4.0 reader reads it, ignoring what it does not know, and a 4.0 writer refuses to rewrite it.",
+  "minor": 3,
+  "writable": false,
+  "reproducible": false,
+  "meta": {
+    "name": "from the future",
+    "created": "2030-01-01",
+    "updated": "2030-01-01",
+    "embedding_model": "",
+    "embedding_dims": 0
+  },
+  "records": [
+    {
+      "id": "0000000000000001",
+      "kind": "fact",
+      "collection": "default",
+      "question": null,
+      "body": "answer 1",
+      "title": "question 1",
+      "source": "conformance",
+      "verified_by": "human",
+      "last_verified": "2026-10-19",
+      "tokens": 2,
+      "embedding": null,
+      "type": "",
+      "attrs": {},
+      "links": []
+    },
+    {
+      "id": "0000000000000002",
+      "kind": "fact",
+      "collection": "default",
+      "question": null,
+      "body": "answer 2",
+      "title": "question 2",
+      "source": "conformance",
+      "verified_by": "human",
+      "last_verified": "2026-10-19",
+      "tokens": 2,
+      "embedding": null,
+      "type": "",
+      "attrs": {},
+      "links": []
+    }
+  ]
+}

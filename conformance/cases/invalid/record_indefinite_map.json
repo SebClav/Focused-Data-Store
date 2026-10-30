@@ -1,0 +1,8 @@
+{
+  "description": "A map with indefinite length (0xBF ... 0xFF).",
+  "error": "malformed",
+  "stage": "record",
+  "readable": [
+    0
+  ]
+}

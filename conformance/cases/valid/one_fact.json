@@ -1,0 +1,31 @@
+{
+  "description": "One fact with every optional field absent.",
+  "minor": 0,
+  "writable": true,
+  "reproducible": true,
+  "meta": {
+    "name": "conformance",
+    "created": "2026-10-19",
+    "updated": "2026-10-19",
+    "embedding_model": "",
+    "embedding_dims": 0
+  },
+  "records": [
+    {
+      "id": "0000000000000001",
+      "kind": "fact",
+      "collection": "default",
+      "question": "question 1",
+      "body": "answer 1",
+      "title": "question 1",
+      "source": "conformance",
+      "verified_by": "human",
+      "last_verified": "2026-10-19",
+      "tokens": 2,
+      "embedding": null,
+      "type": "",
+      "attrs": {},
+      "links": []
+    }
+  ]
+}

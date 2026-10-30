@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How I work</title>
+<style>
+  /* Only for this demo page. When you paste the component into your own site,
+     leave this block out: your page already has a background. */
+  html, body { margin: 0; }
+  body { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; box-sizing: border-box;
+         background: radial-gradient(1200px 600px at 20% 0%, #2a3b63 0%, #151d30 55%, #0e1424 100%);
+         font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+</style>
+</head>
+<body>
+
+<!-- BEGIN fds-how: copy everything down to END fds-how into your page -->
+<style>
+  .fh {
+    /* Colours: change these to match your site. */
+    --fh-card: #19212f;
+    --fh-card-border: #2c3646;
+    --fh-step: #232b38;
+    --fh-step-border: #303a4a;
+    --fh-text: #e8edf6;
+    --fh-muted: #9aa6bb;
+    --fh-line: #3b4a66;
+    --fh-accent: #8fb0ea;          /* done circle, active ring */
+    --fh-me-bg: #1f3a6e;   --fh-me-fg: #b4cbff;
+    --fh-agent-bg: #3b2559; --fh-agent-fg: #dcbcff;
+    --fh-ok-bg: #14432f;   --fh-ok-fg: #86e6b4;
+    --fh-log-bg: #11161e;
+    --fh-radius: 20px;
+
+    box-sizing: border-box;
+    width: 100%; max-width: 880px; margin: 0 auto; padding: 24px 28px 28px;
+    background: var(--fh-card); color: var(--fh-text);
+    border: 1px solid var(--fh-card-border); border-radius: var(--fh-radius);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.45;
+  }
+  .fh *, .fh *::before, .fh *::after { box-sizing: border-box; }
+  .fh-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+  .fh-eyebrow { font: 500 12px/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--fh-muted); margin: 6px 0 0; }
+  .fh-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 999px; cursor: pointer;
+            background: transparent; color: var(--fh-text); border: 1px solid #3a475b; font: 600 14px/1 inherit; font-family: inherit; }
+  .fh-btn:hover { background: rgba(255,255,255,.06); }
+  .fh-btn:focus-visible { outline: 2px solid var(--fh-accent); outline-offset: 2px; }
+  .fh-btn svg { width: 12px; height: 12px; fill: currentColor; }
+  .fh h2 { margin: 18px 0 6px; font-size: 26px; line-height: 1.2; font-weight: 700; letter-spacing: -.01em; }
+  .fh-lead { margin: 0 0 22px; max-width: 560px; color: var(--fh-muted); font-size: 15px; }
+
+  .fh-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 24px; align-items: start; }
+
+  .fh-steps { list-style: none; margin: 0; padding: 0; }
+  .fh-step { position: relative; display: grid; grid-template-columns: 24px 1fr; gap: 14px; padding-bottom: 12px; }
+  .fh-step:last-child { padding-bottom: 0; }
+  .fh-step::before { content: ""; position: absolute; left: 11px; top: 26px; bottom: -2px; width: 2px; background: var(--fh-line); }
+  .fh-step:last-child::before { display: none; }
+  .fh-dot { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700;
+            background: var(--fh-accent); color: #10203d; border: 2px solid var(--fh-accent); margin-top: 6px; z-index: 1; transition: all .35s; }
+  .fh-dot .fh-n { display: none; }
+  .fh-card { background: var(--fh-step); border: 1px solid var(--fh-step-border); border-radius: 14px; padding: 12px 16px 14px; transition: border-color .35s, box-shadow .35s, opacity .35s; }
+  .fh-tag { display: inline-block; padding: 3px 9px; border-radius: 7px; font-size: 11px; font-weight: 600; margin-bottom: 6px; }
+  .fh-tag.me { background: var(--fh-me-bg); color: var(--fh-me-fg); }
+  .fh-tag.ag { background: var(--fh-agent-bg); color: var(--fh-agent-fg); }
+  .fh-card h3 { margin: 0 0 3px; font-size: 16px; font-weight: 700; }
+  .fh-card p { margin: 0; color: var(--fh-muted); font-size: 13.5px; }
+  .fh-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .fh-chip { background: var(--fh-ok-bg); color: var(--fh-ok-fg); border-radius: 999px; padding: 3px 10px; font-size: 11.5px; font-weight: 600; transition: opacity .3s, transform .3s; }
+
+  /* The current step: a ring instead of a check. */
+  .fh-step.fh-active .fh-dot { background: var(--fh-card); color: var(--fh-accent); box-shadow: 0 0 0 4px rgba(143,176,234,.22); }
+  .fh-step.fh-active .fh-dot .fh-ck { display: none; }
+  .fh-step.fh-active .fh-dot .fh-n { display: inline; }
+  .fh-step.fh-active .fh-card { border-color: var(--fh-accent); box-shadow: 0 0 0 2px rgba(143,176,234,.18); }
+
+  .fh-box { background: var(--fh-log-bg); border: 1px solid #262e3b; border-radius: 14px; overflow: hidden; }
+  .fh-box-bar { display: flex; align-items: center; gap: 7px; padding: 11px 14px; border-bottom: 1px solid #242c38;
+                font: 13px/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: var(--fh-muted); }
+  .fh-light { width: 10px; height: 10px; border-radius: 50%; }
+  .fh-light:nth-child(1) { background: #e0829a; } .fh-light:nth-child(2) { background: #e6c56e; } .fh-light:nth-child(3) { background: #6fd0a8; }
+  .fh-box-name { margin-left: 8px; }
+  .fh-rec { margin-left: auto; background: #14432f; color: #86e6b4; padding: 4px 10px; border-radius: 999px; font: 600 11px/1 ui-monospace, Menlo, Consolas, monospace; }
+  .fh-rec::before { content: "●"; font-size: 8px; margin-right: 6px; vertical-align: 1px; }
+  .fh-log { list-style: none; margin: 0; padding: 14px 16px 16px; font: 13.5px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace; min-height: 280px; }
+  .fh-log li { display: grid; grid-template-columns: 34px max-content 1fr; column-gap: 4px; transition: opacity .35s, transform .35s; }
+  .fh-log .no { color: var(--fh-muted); }
+  .fh-log .who { color: #b58cf0; } .fh-log .who.me { color: #78aaff; }
+  .fh-log .what { font-weight: 600; padding-left: 6px; }
+  .fh-cap { margin: 12px 4px 0; color: var(--fh-muted); font-size: 13px; }
+
+  /* With JavaScript the animation starts from the beginning; without it,
+     everything is simply shown in its final state. */
+  .fh-js .fh-step.fh-pending .fh-dot { background: transparent; color: var(--fh-muted); border-color: var(--fh-line); }
+  .fh-js .fh-step.fh-pending .fh-dot .fh-ck { display: none; }
+  .fh-js .fh-step.fh-pending .fh-dot .fh-n { display: inline; }
+  .fh-js .fh-step.fh-pending .fh-card { opacity: .55; }
+  .fh-js .fh-log li.fh-hide { opacity: 0; transform: translateY(4px); }
+  .fh-js .fh-chip.fh-hide { opacity: 0; transform: scale(.9); }
+
+  @media (max-width: 780px) {
+    .fh { padding: 18px 16px 22px; }
+    .fh-grid { grid-template-columns: 1fr; }
+    .fh h2 { font-size: 22px; }
+    .fh-log { min-height: 0; font-size: 12.5px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fh *, .fh *::before { transition: none !important; }
+  }
+</style>
+
+<section class="fh" id="fds-how" aria-labelledby="fh-title">
+  <div class="fh-top">
+    <p class="fh-eyebrow">How I work</p>
+    <button class="fh-btn" type="button" data-fh-toggle aria-pressed="true">
+      <svg viewBox="0 0 12 12" aria-hidden="true" data-fh-icon><path d="M2 1l9 5-9 5z"/></svg>
+      <span data-fh-label>Pause animation</span>
+    </button>
+  </div>
+
+  <h2 id="fh-title">From a problem to verified software</h2>
+  <p class="fh-lead">First I understand the problem and design the system. Then I work with agents in tiers: one reasons, another decides how it gets built, and others execute. FDS keeps what each agent does in plain view.</p>
+
+  <div class="fh-grid">
+    <ol class="fh-steps">
+      <li class="fh-step fh-done"><span class="fh-dot"><span class="fh-ck">✓</span><span class="fh-n">1</span></span>
+        <div class="fh-card"><span class="fh-tag me">Me</span><h3>I recognize the problem</h3><p>I understand what needs solving, and for whom, before writing a line of code.</p></div></li>
+      <li class="fh-step fh-done"><span class="fh-dot"><span class="fh-ck">✓</span><span class="fh-n">2</span></span>
+        <div class="fh-card"><span class="fh-tag me">Me</span><h3>I design the system</h3><p>I define the architecture: the pieces, their boundaries and how they connect.</p></div></li>
+      <li class="fh-step fh-done"><span class="fh-dot"><span class="fh-ck">✓</span><span class="fh-n">3</span></span>
+        <div class="fh-card"><span class="fh-tag ag">Agent · reasoning</span><h3>I consult the agent that reasons best</h3><p>It has the strongest reasoning: it checks my design and flags the risks before anything gets built.</p></div></li>
+      <li class="fh-step fh-done"><span class="fh-dot"><span class="fh-ck">✓</span><span class="fh-n">4</span></span>
+        <div class="fh-card"><span class="fh-tag ag">Agent · technical decision</span><h3>It delegates the technical decision</h3><p>Another agent chooses how the system gets built: the approach, the structure and the order.</p></div></li>
+      <li class="fh-step fh-done"><span class="fh-dot"><span class="fh-ck">✓</span><span class="fh-n">5</span></span>
+        <div class="fh-card"><span class="fh-tag ag">Agents · execution</span><h3>It hands out the tasks</h3><p>Faster, more concise agents that are very good at programming take each task and carry it out.</p>
+          <div class="fh-chips"><span class="fh-chip">Task 1 · ready</span><span class="fh-chip">Task 2 · ready</span><span class="fh-chip">Task 3 · ready</span></div></div></li>
+      <li class="fh-step fh-active"><span class="fh-dot"><span class="fh-ck">✓</span><span class="fh-n">6</span></span>
+        <div class="fh-card"><span class="fh-tag me">Me</span><h3>I review and verify</h3><p>At the end I review what the agents did. Nothing counts as done without passing through me.</p></div></li>
+    </ol>
+
+    <div>
+      <div class="fh-box" role="img" aria-label="Log of the steps, as FDS records them: problem recognized, architecture defined, consultation sent to the reasoning agent, technical decision delegated, three tasks assigned, tasks run and finished, changes reviewed.">
+        <div class="fh-box-bar"><i class="fh-light"></i><i class="fh-light"></i><i class="fh-light"></i><span class="fh-box-name">black box · FDS</span><span class="fh-rec">recording</span></div>
+        <ol class="fh-log" aria-hidden="true">
+          <li><span class="no">#01</span><span class="who me">[me]</span><span class="what">problem recognized</span></li>
+          <li><span class="no">#02</span><span class="who me">[me]</span><span class="what">architecture defined</span></li>
+          <li><span class="no">#03</span><span class="who me">[me]</span><span class="what">consultation sent → reasoning agent</span></li>
+          <li><span class="no">#04</span><span class="who">[reasoning]</span><span class="what">technical decision delegated → decision agent</span></li>
+          <li><span class="no">#05</span><span class="who">[decision]</span><span class="what">3 tasks assigned → execution agents</span></li>
+          <li><span class="no">#06</span><span class="who">[execution]</span><span class="what">task 1 · running</span></li>
+          <li><span class="no">#07</span><span class="who">[execution]</span><span class="what">task 2 · running</span></li>
+          <li><span class="no">#08</span><span class="who">[execution]</span><span class="what">task 3 · running</span></li>
+          <li><span class="no">#09</span><span class="who">[execution]</span><span class="what">tasks finished</span></li>
+          <li><span class="no">#10</span><span class="who me">[me]</span><span class="what">reviewing the changes</span></li>
+        </ol>
+      </div>
+      <!-- FDS records two kinds of steps. What an agent writes about itself (fds_log) is as honest as the agent. What passes through
+           `fds guard` is decided and recorded by the guard, in a hash chain that shows tampering: `fds audit verify`. The sentence below is
+           true of the second kind. For an agent with a path to the tool that does not go through the guard it is not. A more cautious wording:
+           "Each agent records its steps in FDS, and a guard records every tool call it makes; nothing counts as done until I review it." -->
+      <p class="fh-cap">Like an airplane's black box: every step is recorded, so I can see what each agent is doing at any moment.</p>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  var root = document.getElementById("fds-how");
+  if (!root) return;
+  var steps = [].slice.call(root.querySelectorAll(".fh-step"));
+  var logs = [].slice.call(root.querySelectorAll(".fh-log li"));
+  var chips = [].slice.call(root.querySelectorAll(".fh-chip"));
+  var btn = root.querySelector("[data-fh-toggle]");
+  var label = root.querySelector("[data-fh-label]");
+  var icon = root.querySelector("[data-fh-icon]");
+  var PLAY = '<path d="M2 1l9 5-9 5z"/>', PAUSE = '<path d="M2 1h3v10H2zM7 1h3v10H7z"/>';
+
+  // Each frame: which step is current, how many are done, how many log lines and chips show.
+  var frames = [
+    { active: -1, done: 0, logs: 0, chips: 0 },
+    { active: 0,  done: 0, logs: 0, chips: 0 },
+    { active: 1,  done: 1, logs: 1, chips: 0 },
+    { active: 2,  done: 2, logs: 2, chips: 0 },
+    { active: 3,  done: 3, logs: 3, chips: 0 },
+    { active: 4,  done: 4, logs: 4, chips: 0 },
+    { active: 4,  done: 4, logs: 5, chips: 0 },
+    { active: 4,  done: 4, logs: 6, chips: 1 },
+    { active: 4,  done: 4, logs: 7, chips: 2 },
+    { active: 4,  done: 4, logs: 8, chips: 3 },
+    { active: 5,  done: 5, logs: 9, chips: 3 },
+    { active: 5,  done: 5, logs: 10, chips: 3 }
+  ];
+  var STEP_MS = 1150, HOLD_MS = 5200;
+  var i = frames.length - 1, timer = null, playing = false, visible = true;
+  var reduced = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function show(f) {
+    steps.forEach(function (s, k) {
+      s.classList.remove("fh-done", "fh-active", "fh-pending");
+      s.classList.add(k < f.done ? "fh-done" : k === f.active ? "fh-active" : "fh-pending");
+    });
+    logs.forEach(function (l, k) { l.classList.toggle("fh-hide", k >= f.logs); });
+    chips.forEach(function (c, k) { c.classList.toggle("fh-hide", k >= f.chips); });
+  }
+  function tick() {
+    i = (i + 1) % frames.length;
+    show(frames[i]);
+    timer = setTimeout(tick, i === frames.length - 1 ? HOLD_MS : STEP_MS);
+  }
+  function setUi() {
+    btn.setAttribute("aria-pressed", String(playing));
+    label.textContent = playing ? "Pause animation" : (i === frames.length - 1 && reduced ? "Play animation" : "Resume animation");
+    icon.innerHTML = playing ? PAUSE : PLAY;
+  }
+  function play() { if (playing) return; playing = true; setUi(); clearTimeout(timer); timer = setTimeout(tick, i === frames.length - 1 ? 600 : STEP_MS); }
+  function pause() { playing = false; clearTimeout(timer); setUi(); }
+
+  root.classList.add("fh-js");
+  btn.addEventListener("click", function () { playing ? pause() : play(); });
+
+  if (reduced) { show(frames[frames.length - 1]); setUi(); }
+  else {
+    i = 0; show(frames[0]);
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (e) {
+        visible = e[0].isIntersecting;
+        if (visible && !root.hasAttribute("data-fh-user-paused")) play(); else if (!visible) pause();
+      }, { threshold: 0.35 }).observe(root);
+    } else { play(); }
+  }
+  btn.addEventListener("click", function () { playing ? root.removeAttribute("data-fh-user-paused") : root.setAttribute("data-fh-user-paused", ""); });
+})();
+</script>
+<!-- END fds-how -->
+
+</body>
+</html>

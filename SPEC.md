@@ -446,7 +446,7 @@ retrievers". Across four domains that rule was wrong in 16–28% of its answers,
 and it called out-of-domain questions `strong`, because with vectors on some
 record nearly always has both signals. Restricted to full coverage of the
 first record, `strong` was right in 97–100% and no out-of-domain question
-reached it (`research/confidence_rules.py`). Callers that execute what they
+reached it in the author's own measurements. Callers that execute what they
 receive should still prefer `exact`; `weak` is for callers that reason, ask,
 or escalate.
 
@@ -1084,7 +1084,7 @@ the folder of the files:
 
 Measured with five agents over a shared base of 10,000 records: five
 `fds mcp` processes held 300 MB; one `fds serve --sectors` and five bridges
-held 110 MB, at 6 ms per query (`research/sectors_ram.py`).
+held 110 MB, at 6 ms per query (author's own measurement).
 
 ---
 

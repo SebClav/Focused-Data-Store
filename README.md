@@ -17,7 +17,6 @@ The status is **experimental** (format 4.0, specification 0.x).
 | `fds-cli/` | The `fds` command-line tool: facts, procedures, contexts, sectors, MCP, HTTP API and browser manager, change journal, policies, guard and audit |
 | `conformance/` | The format conformance suite and a second implementation in Python, written from the specification |
 | `SPEC.md` | The specification: format, query semantics, sectors, policies |
-| `research/` | Scripts, questions and recorded results behind the figures in `CHANGELOG.md` |
 | `site/how-i-work.html` | The animated page of the flow from a request to human review |
 | `examples/` | A sample agent guide and the `cafe-aurora` multi-agent example |
 
@@ -89,8 +88,8 @@ the audit file. `FDS.md` is a ready-made instruction file for such an agent.
   tool. Where the records say `human`, the tool only reads a label: it does not
   know who wrote it.
 - **The figures are early.** The numbers in `CHANGELOG.md` come from small
-  test sets written by the same author as the records. `research/README.md`
-  says what can and cannot be re-run here.
+  test sets written by the same author as the records; the measurement scripts
+  are not part of this repository.
 
 ## License
 

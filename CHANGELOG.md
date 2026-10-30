@@ -13,10 +13,8 @@
 - `fact add` and `fact import` warn when a fact replaces a different answer,
   source or collection. A question is one fact per database whatever its
   collection (SPEC.md §3.1); separate knowledge belongs in a sector.
-- `research/`: the scripts, the questions and the recorded results behind the
-  figures below. `accuracy.py` and `verify.py` also read data from the
-  project they were written in and cannot be re-run from this repository as
-  they are.
+- The measurement scripts and recorded results behind the figures below are
+  not part of this repository.
 
 ### Fixed
 
@@ -31,10 +29,10 @@
   `which`, `cómo`, `quién`, `cuál` and their kin, 23 words, so the list is 170.
   "Can users delete records?" no longer returns the answer stored for
   "Should users delete records?" or "How can users delete records?" as `exact`.
-  Seven new vectors; the Python suite runs 294 checks. The benchmark
-  (`benchmark_v3`, S7) found this.
+  Seven new vectors; the Python suite runs 294 checks. A benchmark
+  run outside this repository found this.
 - Retrieval: a fact or procedure whose whole question is contained in the query
-  now has its stage-2 score doubled. In the benchmark's 600-record fixture
+  now has its stage-2 score doubled. In a 600-record test fixture
   "cafe menu items" did not return "What are the menu items?" at all and an
   agent shipped an empty menu; it now ranks second. Calibration on 12 queries:
   11 hits, from 10. A query term that no word of a record matches exactly now
@@ -72,7 +70,7 @@ First public release, aimed at agents.
   same files and judge the same cases the same way.
 - Query with `exact`, `strong`, `weak` or `none`. `strong` now means the first
   record contains every word of the question: 97–100% precise in the four test
-  domains measured (`research/results/confidence_rules.json`), and no
+  domains measured, and no
   out-of-domain question reaches it. The price is coverage: `strong` is given
   to 32–36% of the direct questions, against 67–95% before.
 - A change journal: agents write what they did, and why, with `fds_log` over MCP
@@ -117,12 +115,12 @@ First public release, aimed at agents.
 - Safe concurrent writes (a lock per database) and readers that re-read a file
   someone else changed.
 - HTTP API and a browser manager in six languages.
-- Measured with real agents (`research/agent/haiku_test/`): twelve Haiku subagents
+- Measured with real agents (not included here): twelve Haiku subagents
   built parts of a site with FDS and with the whole data file in context. Same
   accuracy (35/35, nothing invented, traps included); with 508 records the file
   cost 2.7× the tokens, with 18 records there was no difference. One run per
   condition: a trend, not a statistic.
-- `research/`: 70+ end-to-end checks, scale up to 100,000 records, answer
+- Measurements (not included here): 70+ end-to-end checks, scale up to 100,000 records, answer
   quality in four domains, memory with several agents. The records and the
   queries were written by the same author, and the figures were measured
   before the stopword revision listed under Unreleased.

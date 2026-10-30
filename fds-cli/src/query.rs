@@ -792,7 +792,7 @@ impl Engine {
         // query. A structural condition, not a tuned threshold. Agreement of
         // the two retrievers is not enough: with vectors on, some record
         // nearly always has both signals, and 16-28% of those answers were
-        // wrong across four domains (research/confidence_rules.py).
+        // wrong across four domains (measured by the author).
         let q_tokens: HashSet<String> = search_terms(text).into_iter().collect();
         let covered = !q_tokens.is_empty()
             && hits.first().map_or(false, |(i, _)| {

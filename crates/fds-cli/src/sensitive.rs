@@ -32,6 +32,7 @@ pub fn cleared(level: &str, clearance: &[String]) -> bool {
 }
 
 /// True when `records` holds something this clearance may not read.
+#[cfg(test)]
 pub fn any_hidden(records: &[Record], clearance: &[String]) -> bool {
     records
         .iter()

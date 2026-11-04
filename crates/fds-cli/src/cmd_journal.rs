@@ -5,7 +5,7 @@ use std::path::Path;
 use serde_json::json;
 
 use crate::cli::{JournalCmd, JournalSrc};
-use crate::{audit, db, journal, ops, print_json, sectors, text};
+use crate::{db, journal, ops, print_json, sectors, text};
 
 /// The entries a `journal` command works on, newest first, and a name for the page.
 pub fn journal_entries(
@@ -48,19 +48,10 @@ pub fn journal_entries(
 /// The black box: journal entries and, when there is an audit file, the guard's
 /// decisions, in the order they happened.
 pub fn journal_steps(
-    src: &JournalSrc,
+    _src: &JournalSrc,
     entries: &[journal::Entry],
 ) -> Result<Vec<journal::Step>, String> {
     let mut steps: Vec<journal::Step> = entries.iter().map(journal::Step::of).collect();
-    let audit_file = src.audit.clone().or_else(|| {
-        src.sectors
-            .as_deref()
-            .map(audit::beside)
-            .filter(|p| p.exists())
-    });
-    if let Some(f) = audit_file {
-        steps.extend(audit::steps(&f)?);
-    }
     journal::sort_oldest_first(&mut steps);
     Ok(steps)
 }
@@ -148,7 +139,10 @@ pub fn journal_cmd(cmd: &JournalCmd, db_file: Option<&Path>, json_out: bool) -> 
             let full = records[i].id.clone();
             let was = records[i].verified_by.clone();
             if was == "human" {
-                eprintln!("{} was already reviewed by a person.", &full[..full.len().min(12)]);
+                eprintln!(
+                    "{} was already reviewed by a person.",
+                    &full[..full.len().min(12)]
+                );
             } else {
                 let edit = ops::Edit {
                     verify: true,
@@ -156,7 +150,10 @@ pub fn journal_cmd(cmd: &JournalCmd, db_file: Option<&Path>, json_out: bool) -> 
                 };
                 ops::edit(&mut records, &full, edit, &text::today())?;
                 db::save(&path, &mut meta, &records)?;
-                eprintln!("{} is now reviewed by a person; it was {was}.", &full[..full.len().min(12)]);
+                eprintln!(
+                    "{} is now reviewed by a person; it was {was}.",
+                    &full[..full.len().min(12)]
+                );
             }
             if json_out {
                 print_json(&json!({"id": full, "was_verified_by": was, "reviewed": true}));

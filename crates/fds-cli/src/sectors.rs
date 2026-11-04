@@ -16,13 +16,12 @@
 //! A sector with a key is an agent's home. The key itself is shown once, when
 //! it is made; the manifest keeps only its SHA-256.
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::ollama;
 use crate::query::{Confidence, Engine, QueryResult, Scope};
 
 pub const MANIFEST: &str = "sectors.json";
@@ -133,6 +132,7 @@ impl Manifest {
     }
 
     /// The agent sector a key opens, if any. Compares digests in constant time.
+    #[cfg(test)]
     pub fn agent_for_key(&self, key: &str) -> Option<&SectorDef> {
         let digest = key_hash(key);
         self.sectors.iter().find(|s| {
@@ -159,7 +159,7 @@ fn folder(path: &Path) -> PathBuf {
 
 /// A fresh agent key: `fdsk_` and 32 hex digits from the OS's RNG-seeded hasher.
 pub fn new_key() -> String {
-    format!("fdsk_{}", crate::serve::new_token())
+    format!("fdsk_{}", new_token())
 }
 
 pub fn key_hash(key: &str) -> String {
@@ -169,6 +169,7 @@ pub fn key_hash(key: &str) -> String {
         .collect()
 }
 
+#[cfg(test)]
 fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
     a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
 }
@@ -192,20 +193,9 @@ pub async fn query(
     budget: u32,
     links: bool,
 ) -> QueryResult {
-    let mut vectors: HashMap<String, Option<Vec<f32>>> = HashMap::new();
     let mut per = Vec::with_capacity(views.len());
     for (order, v) in views.iter().enumerate() {
-        let emb = if v.engine.has_embeddings() {
-            let model = v.engine.meta.embedding_model.clone();
-            if !vectors.contains_key(&model) {
-                let e = ollama::embed_query(&model, text).await;
-                vectors.insert(model.clone(), e);
-            }
-            vectors[&model].clone()
-        } else {
-            None
-        };
-        let mut r = v.engine.query_scoped(text, scope, budget, emb.as_deref());
+        let mut r = v.engine.query_scoped(text, scope, budget, None);
         if links {
             v.engine.expand_links(&mut r, scope);
         }
@@ -362,4 +352,22 @@ mod tests {
         let r = query(&views, "my note", &scope, 400, false).await;
         assert_eq!(r.records[0].sector.as_deref(), Some("sales"));
     }
+}
+
+pub(crate) fn new_token() -> String {
+    use std::collections::hash_map::RandomState;
+    use std::hash::{BuildHasher, Hasher};
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    (0..2u64)
+        .map(|i| {
+            let mut h = RandomState::new().build_hasher();
+            h.write_u64(i);
+            h.write_u128(nanos);
+            h.write_u32(std::process::id());
+            format!("{:016x}", h.finish())
+        })
+        .collect()
 }

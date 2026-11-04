@@ -119,19 +119,6 @@ pub fn fragments_text(text: &str, name: &str, ext: &str) -> Option<Vec<(String, 
     )
 }
 
-pub const MAX_DOCUMENT_BYTES: usize = MAX_FILE_BYTES as usize;
-
-/// Every extension `fragments_text` accepts. The manager is handed this list
-/// rather than keeping its own copy, so the two cannot drift apart.
-pub fn document_extensions() -> Vec<&'static str> {
-    MD_EXT
-        .iter()
-        .chain(TEXT_EXT)
-        .chain(CODE_EXT)
-        .copied()
-        .collect()
-}
-
 fn markdown(text: &str, name: &str) -> Vec<(String, String)> {
     let mut out = Vec::new();
     let mut stack: Vec<(usize, String)> = Vec::new();

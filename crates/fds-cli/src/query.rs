@@ -56,13 +56,19 @@ fn related_terms(a: &str, b: &str) -> bool {
     if a == b {
         return false;
     }
-    let (short, long) = if a.chars().count() <= b.chars().count() { (a, b) } else { (b, a) };
-    if short.chars().count() >= 3
-        && (long == format!("{short}s") || long == format!("{short}es"))
-    {
+    let (short, long) = if a.chars().count() <= b.chars().count() {
+        (a, b)
+    } else {
+        (b, a)
+    };
+    if short.chars().count() >= 3 && (long == format!("{short}s") || long == format!("{short}es")) {
         return true;
     }
-    let common = short.chars().zip(long.chars()).take_while(|(x, y)| x == y).count();
+    let common = short
+        .chars()
+        .zip(long.chars())
+        .take_while(|(x, y)| x == y)
+        .count();
     let len = short.chars().count();
     len >= 8 && common >= len - 2
 }
@@ -225,6 +231,7 @@ pub struct Engine {
     /// if one exists.
     out_links: Vec<Vec<(String, Option<usize>)>>,
     /// Records that link to each record.
+    #[cfg(test)]
     backlinks: Vec<Vec<usize>>,
 }
 
@@ -329,6 +336,7 @@ impl Engine {
             doc_freq,
             avg_len,
             out_links,
+            #[cfg(test)]
             backlinks,
         }
     }
@@ -344,11 +352,13 @@ impl Engine {
             .collect()
     }
 
+    #[cfg(test)]
     pub fn backlinks_of(&self, i: usize) -> &[usize] {
         &self.backlinks[i]
     }
 
     /// Every resolved link as (from, to) record indexes: the graph.
+    #[cfg(test)]
     pub fn edges(&self) -> Vec<(usize, usize)> {
         self.out_links
             .iter()
@@ -480,10 +490,6 @@ impl Engine {
                 Some(_) => {}
             }
         }
-    }
-
-    pub fn has_embeddings(&self) -> bool {
-        !self.meta.embedding_model.is_empty() && self.records.iter().any(|r| r.embedding.is_some())
     }
 
     fn in_scope(&self, i: usize, scope: &Scope) -> bool {

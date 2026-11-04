@@ -1,5 +1,5 @@
-//! The conformance suite (../../docs/conformance): the files a second implementation,
-//! written in Python from the spec alone, also has to read the same way.
+//! Reference fixtures in docs/conformance test reading, writing and corruption
+//! handling against expected records and error categories.
 //!
 //! Every valid file must read into exactly the records in its `.json`, and,
 //! unless the case says otherwise, writing those records back must reproduce

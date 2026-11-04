@@ -23,7 +23,7 @@ pub struct Cli {
     pub json: bool,
 
     /// Refuse every command that creates or modifies a database, a sector or
-    /// the audit file. For an agent that runs this tool; it is not a
+    /// manifest. For an agent that runs this tool; it is not a
     /// substitute for file permissions.
     #[arg(long, global = true)]
     pub read_only: bool,
@@ -48,27 +48,12 @@ pub enum Command {
         paths: Vec<PathBuf>,
         #[arg(short, long, default_value = "default")]
         collection: String,
-        /// Vision model that describes images (default: FDS_VISION_MODEL, else qwen2.5vl:3b)
-        #[arg(long, value_name = "MODEL")]
-        vision_model: Option<String>,
-        /// Language to describe images in: es, en, fr, de, ...
-        #[arg(long, value_name = "CODE")]
-        lang: Option<String>,
     },
-    /// Import rows from CSV, TSV, JSON or JSON Lines (facts, procedures, contexts)
+    /// Import facts from a JSON object or array
     Import {
         file: PathBuf,
         #[arg(short, long, default_value = "default")]
         collection: String,
-        /// Kind of every row when the file has no kind column: fact, procedure or context
-        #[arg(long, value_name = "KIND")]
-        kind: Option<String>,
-        /// Show what would happen, and write nothing
-        #[arg(long)]
-        dry_run: bool,
-        /// Write the valid rows and report the rest, instead of all-or-nothing
-        #[arg(long)]
-        skip_errors: bool,
     },
     /// Manage verified facts
     #[command(subcommand)]
@@ -113,47 +98,6 @@ pub enum Command {
     Journal(JournalCmd),
     /// List the lines agents flagged in the journal and open the editor on them
     Review(ReviewArgs),
-    /// Ask whether an action breaks a policy: allow (exit 0) or deny (exit 3), with no model
-    Check {
-        /// What the action touches, e.g. fridge.chamber3.setpoint
-        #[arg(long)]
-        subject: String,
-        /// The operation: set, delete, drop, read_raw...
-        #[arg(long)]
-        action: String,
-        /// The value being set, when the rule is a range or a list
-        #[arg(long, allow_hyphen_values = true)]
-        value: Option<String>,
-        /// Read the policies of every sector of this manifest
-        #[arg(long, value_name = "FILE")]
-        sectors: Option<PathBuf>,
-        /// What to answer when no policy matches: allow or deny (default: the manifest's, else allow)
-        #[arg(long)]
-        default: Option<String>,
-    },
-    /// Manage policies: rules a person verified, enforced by `check` and the guard
-    #[command(subcommand)]
-    Policy(PolicyCmd),
-    /// Stand between an agent and the real tool server: check every tool call
-    /// against the policies, forward what passes, refuse what does not, and
-    /// record each decision. The agent's host starts this instead of the server.
-    Guard {
-        /// The sectors manifest whose policies apply (and whose `default` decides the rest)
-        #[arg(long, value_name = "FILE")]
-        policies: PathBuf,
-        /// Who the agent is, for the audit (default: $FDS_AGENT, else `unknown`)
-        #[arg(long)]
-        agent: Option<String>,
-        /// Where decisions are recorded (default: audit.jsonl next to the manifest)
-        #[arg(long, value_name = "FILE")]
-        audit: Option<PathBuf>,
-        /// The real MCP server's command, after `--`
-        #[arg(trailing_var_arg = true, allow_hyphen_values = true, required = true)]
-        command: Vec<String>,
-    },
-    /// Read or verify the guard's audit file
-    #[command(subcommand)]
-    Audit(AuditCmd),
     /// List records
     Ls {
         #[arg(long)]
@@ -172,14 +116,6 @@ pub enum Command {
         #[arg(long, value_name = "PATH")]
         source: Option<String>,
     },
-    /// Compute and store embeddings (needs Ollama)
-    Embed {
-        #[arg(long)]
-        model: Option<String>,
-        /// Recompute every record, not only those missing one
-        #[arg(long)]
-        all: bool,
-    },
     /// Query the database
     Query {
         #[arg(required = true)]
@@ -195,20 +131,6 @@ pub enum Command {
         #[arg(long, value_name = "WHO")]
         verified_by: Option<String>,
     },
-    /// Serve the query API, the database manager and MCP over HTTP
-    Serve {
-        #[arg(long, default_value_t = 7070)]
-        port: u16,
-        /// Open the manager in the default browser
-        #[arg(long)]
-        open: bool,
-        /// Serve every sector in this manifest instead of one database
-        #[arg(long, value_name = "MANIFEST")]
-        sectors: Option<PathBuf>,
-        /// Sensitivity levels `/mcp` may show in full, comma-separated (one database; with sectors each agent's manifest entry decides)
-        #[arg(long, value_delimiter = ',')]
-        clearance: Vec<String>,
-    },
     /// Serve FDS's tools to an agent over MCP (stdio)
     Mcp {
         /// Let the agent save and remove its own records (fds_remember, fds_forget)
@@ -218,11 +140,8 @@ pub enum Command {
         #[arg(long = "as", value_name = "NAME")]
         agent: Option<String>,
         /// Read the agent's sector, and the ones it reads, from this manifest
-        #[arg(long, value_name = "MANIFEST", conflicts_with = "connect")]
+        #[arg(long, value_name = "MANIFEST")]
         sectors: Option<PathBuf>,
-        /// Forward to a running `fds serve` instead of loading files (key in FDS_KEY)
-        #[arg(long, value_name = "URL")]
-        connect: Option<String>,
         /// Sensitivity levels the agent may read in full, comma-separated (one database; with sectors its manifest entry decides)
         #[arg(long, value_delimiter = ',')]
         clearance: Vec<String>,
@@ -233,12 +152,8 @@ pub enum Command {
 }
 
 impl Command {
-    /// Whether the command creates or modifies a database, a sector or the
-    /// audit file, and so is refused under `--read-only`.
-    ///
-    /// `journal export` only writes a Markdown file and is allowed. `serve`
-    /// is refused because its manager and `/mcp` can write; `mcp` is refused
-    /// only with `--write`.
+    /// Whether this command changes a database or sector manifest.
+    /// Read-only MCP exposes no memory or logging tools.
     pub fn writes(&self) -> bool {
         match self {
             Command::Init { .. }
@@ -247,10 +162,7 @@ impl Command {
             | Command::Fact(_)
             | Command::Proc(_)
             | Command::Log { .. }
-            | Command::Guard { .. }
-            | Command::Rm { .. }
-            | Command::Embed { .. }
-            | Command::Serve { .. } => true,
+            | Command::Rm { .. } => true,
             Command::Context(cmd) => {
                 matches!(cmd, ContextCmd::Set { .. } | ContextCmd::Import { .. })
             }
@@ -258,15 +170,11 @@ impl Command {
                 matches!(cmd, JournalCmd::Publish { .. } | JournalCmd::Review { .. })
             }
             Command::Review(_) => false,
-            Command::Policy(cmd) => matches!(cmd, PolicyCmd::Add { .. }),
             Command::Sector(cmd) => !matches!(cmd, SectorCmd::Ls { .. }),
             Command::Mcp { write, .. } => *write,
-            Command::Status
-            | Command::Check { .. }
-            | Command::Audit(_)
-            | Command::Ls { .. }
-            | Command::Show { .. }
-            | Command::Query { .. } => false,
+            Command::Status | Command::Ls { .. } | Command::Show { .. } | Command::Query { .. } => {
+                false
+            }
         }
     }
 }
@@ -393,9 +301,6 @@ pub struct JournalSrc {
     /// At most this many, newest first
     #[arg(long)]
     pub limit: Option<usize>,
-    /// For --timeline: also the guard's audit file (with --sectors, the one next to the manifest is used)
-    #[arg(long, value_name = "FILE")]
-    pub audit: Option<PathBuf>,
 }
 
 /// `fds review`: where agents asked a person to look, and the editor opened there.
@@ -465,67 +370,6 @@ pub enum JournalCmd {
 }
 
 #[derive(Subcommand)]
-pub enum AuditCmd {
-    /// List the decisions, newest first
-    Show {
-        /// The audit file (default: audit.jsonl in this directory)
-        #[arg(long, value_name = "FILE")]
-        file: Option<PathBuf>,
-        #[arg(long)]
-        limit: Option<usize>,
-    },
-    /// Check that no line was changed, removed or inserted; prints the hash of the last line
-    Verify {
-        #[arg(long, value_name = "FILE")]
-        file: Option<PathBuf>,
-    },
-}
-
-#[derive(Subcommand)]
-pub enum PolicyCmd {
-    /// Add or replace a policy
-    Add {
-        /// The rule in your own words; it is what a denial shows
-        text: String,
-        /// What it protects; a trailing * matches a prefix (db.prod.*)
-        #[arg(long)]
-        subject: String,
-        /// The operation it covers, or * for every one
-        #[arg(long, default_value = "*")]
-        action: String,
-        /// deny, range or one_of
-        #[arg(long)]
-        rule: String,
-        /// Lower bound, inclusive (rule range)
-        #[arg(long, allow_hyphen_values = true)]
-        min: Option<String>,
-        /// Upper bound, inclusive (rule range)
-        #[arg(long, allow_hyphen_values = true)]
-        max: Option<String>,
-        /// Allowed values, comma-separated (rule one_of)
-        #[arg(long)]
-        values: Option<String>,
-        /// Shown in answers: C, rpm, USD...
-        #[arg(long)]
-        unit: Option<String>,
-        /// For the guard: the tool call this policy governs
-        #[arg(long)]
-        tool: Option<String>,
-        /// For the guard: the subject of that call, with {argument} placeholders (default: --subject)
-        #[arg(long)]
-        tool_subject: Option<String>,
-        /// For the guard: the action of that call (default: --action)
-        #[arg(long)]
-        tool_action: Option<String>,
-        /// For the guard: the value of that call, e.g. {celsius}
-        #[arg(long)]
-        tool_value: Option<String>,
-    },
-    /// List the policies, and say which ones do not count
-    Ls,
-}
-
-#[derive(Subcommand)]
 pub enum ProcCmd {
     /// Add or replace procedures from a JSON file (one object or an array)
     Add {
@@ -541,6 +385,16 @@ mod tests {
 
     use super::Cli;
 
+    #[test]
+    fn basic_distribution_exposes_only_local_agent_workflows() {
+        for command in ["serve", "embed", "policy", "check", "guard", "audit"] {
+            assert!(Cli::try_parse_from(["fds", command]).is_err(), "{command}");
+        }
+        assert!(Cli::try_parse_from(["fds", "mcp", "--connect", "http://localhost:7070/mcp"]).is_err());
+        assert!(Cli::try_parse_from(["fds", "mcp", "--write", "--as", "backend"]).is_ok());
+        assert!(Cli::try_parse_from(["fds", "review", "--list"]).is_ok());
+    }
+
     fn writes(args: &[&str]) -> bool {
         let mut argv = vec!["fds"];
         argv.extend_from_slice(args);
@@ -555,7 +409,7 @@ mod tests {
         for args in [
             &["init"][..],
             &["add", "docs"],
-            &["import", "rows.csv"],
+            &["import", "facts.json"],
             &["fact", "add", "q", "a"],
             &["fact", "import", "facts.json"],
             &["proc", "add", "procs.json"],
@@ -563,21 +417,7 @@ mod tests {
             &["context", "import", "AGENTS.md"],
             &["log", "did a thing"],
             &["journal", "publish"],
-            &[
-                "policy",
-                "add",
-                "text",
-                "--subject",
-                "s",
-                "--action",
-                "a",
-                "--rule",
-                "deny",
-            ],
-            &["guard", "--policies", "sectors.json", "--", "server"],
             &["rm", "id"],
-            &["embed"],
-            &["serve"],
             &["mcp", "--write"],
             &["sector", "new", "sales"],
             &["sector", "key", "sales"],
@@ -592,9 +432,6 @@ mod tests {
     fn commands_that_only_read_are_not_writes() {
         for args in [
             &["status"][..],
-            &["check", "--subject", "s", "--action", "a"],
-            &["audit", "show"],
-            &["audit", "verify"],
             &["ls"],
             &["show", "id"],
             &["query", "some", "words"],
@@ -603,7 +440,6 @@ mod tests {
             &["context", "export", "n"],
             &["journal", "show"],
             &["journal", "export"],
-            &["policy", "ls"],
             &["mcp"],
             &["sector", "ls"],
         ] {

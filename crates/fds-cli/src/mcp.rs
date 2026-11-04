@@ -1,7 +1,6 @@
 //! MCP (SPEC.md §9): FDS's tools for an agent, over stdio or HTTP.
 //!
-//! One handler, `respond`, serves both transports: `fds mcp` reads JSON-RPC
-//! lines on stdin, and `fds serve` answers POST /mcp (serve.rs). It speaks
+//! `fds mcp` reads JSON-RPC lines on stdin. It supports
 //! both eras of the protocol: the stateless per-request metadata of
 //! 2026-07-28, and the `initialize` handshake of the revisions before it.
 //!
@@ -11,6 +10,7 @@
 
 use std::path::PathBuf;
 
+#[cfg(test)]
 use base64::Engine as _;
 use serde_json::{json, Value};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -18,7 +18,7 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use crate::query::{verified_list, ContextBundle, Engine, QueryResult, Scope, DEFAULT_BUDGET};
 use crate::sectors::{self, View};
 use crate::text::today;
-use crate::{db, ops, policy, sensitive, status};
+use crate::{db, ops, sensitive, status};
 
 /// Newest first. 2026-07-28 is stateless; the others open with `initialize`.
 pub const SUPPORTED: &[&str] = &[
@@ -89,19 +89,6 @@ fn tools(memory: bool) -> Value {
                     "known_hash": {"type": "string", "description": "The hash of the version you already hold, if any."}
                 },
                 "required": ["name"]
-            }
-        }),
-        json!({
-            "name": "fds_check",
-            "description": "Ask whether an action is allowed BEFORE you do it. Give what it touches (subject), the operation (action) and, when you are setting something, the value. The answer is allow or deny, with the rule and the person's own words for it when it denies. It is decided by comparing, not by a model, and it cannot be argued with: if it says deny, do not do it and do not look for another way. If no rule covers the action the answer says so (default_applied): that is not permission to ignore the rules of whoever runs you. A guard may enforce the same rules on the calls you make.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "subject": {"type": "string", "description": "What the action touches, e.g. fridge.chamber3.setpoint or db.prod.customers."},
-                    "action": {"type": "string", "description": "The operation: set, delete, drop, read_raw..."},
-                    "value": {"type": "string", "description": "The value being set, when there is one."}
-                },
-                "required": ["subject", "action"]
             }
         }),
         json!({
@@ -340,34 +327,6 @@ async fn call(s: &Session<'_>, name: &str, args: &Value) -> Value {
                 .map(|v| (v.name, v.engine.records.as_slice()))
                 .collect();
             text(crate::journal::read_text(&views, &filter, timeline), false)
-        }
-        "fds_check" => {
-            let (Some(subject), Some(action)) = (arg(args, "subject"), arg(args, "action")) else {
-                return text(
-                    "missing required parameters: subject and action".into(),
-                    true,
-                );
-            };
-            let value = match args.get("value") {
-                Some(Value::String(v)) => Some(v.trim().to_string()).filter(|v| !v.is_empty()),
-                Some(Value::Number(n)) => Some(n.to_string()),
-                Some(Value::Bool(b)) => Some(b.to_string()),
-                _ => None,
-            };
-            let policies: Vec<policy::Policy> = s
-                .views
-                .iter()
-                .flat_map(|v| policy::policies(&v.engine.records))
-                .collect();
-            let d = policy::check(
-                &policies,
-                subject,
-                action,
-                value.as_deref(),
-                policy::Fallback::Allow,
-            );
-            let body = serde_json::to_string_pretty(&d).unwrap_or_default();
-            text(format!("{}\n\n{body}", d.summary()), false)
         }
         "fds_contexts" => {
             let many = s.views.len() > 1;
@@ -647,6 +606,7 @@ pub async fn respond(req: &Value, s: &Session<'_>) -> Option<Value> {
 
 /// A header value as the 2026-07-28 transport writes it: plain when it is
 /// printable ASCII without edge spaces, else `=?base64?…?=`.
+#[cfg(test)]
 pub fn header_value(v: &str) -> String {
     let plain = !v.is_empty()
         && v.trim() == v
@@ -662,6 +622,7 @@ pub fn header_value(v: &str) -> String {
     }
 }
 
+#[cfg(test)]
 fn decode_header(v: &str) -> Option<String> {
     match v
         .strip_prefix("=?base64?")
@@ -678,6 +639,7 @@ fn decode_header(v: &str) -> Option<String> {
 /// The 2026-07-28 rule that headers mirror the body: a router that trusts
 /// the header must not be told one thing while the server does another.
 /// Legacy requests carry none of these headers and are not checked.
+#[cfg(test)]
 pub fn check_headers(req: &Value, header: impl Fn(&str) -> Option<String>) -> Result<(), String> {
     let Some(version) = requested_version(req) else {
         return Ok(());
@@ -713,15 +675,6 @@ pub fn check_headers(req: &Value, header: impl Fn(&str) -> Option<String>) -> Re
         }
     }
     Ok(())
-}
-
-pub fn header_mismatch(id: Option<Value>, message: &str) -> Value {
-    error(
-        id.unwrap_or(Value::Null),
-        -32020,
-        &format!("Header mismatch: {message}"),
-        None,
-    )
 }
 
 struct Loaded {
@@ -796,92 +749,6 @@ pub async fn run(
             continue;
         };
         let mut payload = serde_json::to_string(&resp).unwrap_or_default();
-        payload.push('\n');
-        if stdout.write_all(payload.as_bytes()).await.is_err() {
-            break;
-        }
-        let _ = stdout.flush().await;
-    }
-    Ok(())
-}
-
-/// `fds mcp --connect URL`: a stdio client's bridge to a running
-/// `fds serve`. It loads no data; every message is forwarded to the one
-/// server that holds the files. The agent key comes from `FDS_KEY`, never
-/// from the command line, where other processes could read it.
-pub async fn connect(url: &str) -> Result<(), String> {
-    let key = std::env::var("FDS_KEY")
-        .ok()
-        .map(|k| k.trim().to_string())
-        .filter(|k| !k.is_empty());
-    let client = reqwest::Client::new();
-    eprintln!(
-        "fds mcp: forwarding to {url}{}",
-        if key.is_some() {
-            " with the key in FDS_KEY"
-        } else {
-            " without a key (read-only)"
-        }
-    );
-
-    let mut lines = BufReader::new(tokio::io::stdin()).lines();
-    let mut stdout = tokio::io::stdout();
-    while let Ok(Some(line)) = lines.next_line().await {
-        let line = line.trim();
-        if line.is_empty() {
-            continue;
-        }
-        let Ok(req) = serde_json::from_str::<Value>(line) else {
-            eprintln!("fds mcp: ignoring malformed JSON");
-            continue;
-        };
-        let id = req.get("id").cloned();
-        let mut rb = client
-            .post(url)
-            .header("content-type", "application/json")
-            .header("accept", "application/json, text/event-stream");
-        if let Some(k) = &key {
-            rb = rb.bearer_auth(k);
-        }
-        if let Some(v) = requested_version(&req) {
-            let method = req.get("method").and_then(|m| m.as_str()).unwrap_or("");
-            rb = rb
-                .header("MCP-Protocol-Version", v)
-                .header("Mcp-Method", method);
-            if let Some(name) = req.pointer("/params/name").and_then(|n| n.as_str()) {
-                rb = rb.header("Mcp-Name", header_value(name));
-            }
-        }
-        let reply = match rb.body(line.to_string()).send().await {
-            Ok(res) => {
-                let status = res.status();
-                let body = res.text().await.unwrap_or_default();
-                match serde_json::from_str::<Value>(&body) {
-                    Ok(v) if v.get("jsonrpc").is_some() => Some(v),
-                    _ => id.clone().map(|id| {
-                        error(
-                            id,
-                            -32603,
-                            &format!("fds serve answered {status}: {}", body.trim()),
-                            None,
-                        )
-                    }),
-                }
-            }
-            Err(e) => id.clone().map(|id| {
-                error(
-                    id,
-                    -32603,
-                    &format!("cannot reach fds serve at {url}: {e}"),
-                    None,
-                )
-            }),
-        };
-        // A notification gets no answer, whatever the server sent back.
-        let (Some(_), Some(reply)) = (id, reply) else {
-            continue;
-        };
-        let mut payload = serde_json::to_string(&reply).unwrap_or_default();
         payload.push('\n');
         if stdout.write_all(payload.as_bytes()).await.is_err() {
             break;
@@ -976,7 +843,7 @@ mod tests {
         assert_eq!(modern["result"]["resultType"], "complete");
         assert_eq!(
             modern["result"]["tools"].as_array().unwrap().len(),
-            6,
+            5,
             "read-only: no memory tools"
         );
         let unknown = respond(&json!({"jsonrpc": "2.0", "id": 3, "method": "tools/list", "params": {"_meta": {META_VERSION: "1900-01-01"}}}), &s)

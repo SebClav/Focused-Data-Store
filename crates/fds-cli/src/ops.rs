@@ -6,13 +6,11 @@
 
 use std::path::Path;
 
-use fds::v4::{DbMeta, Kind, Record};
+use fds::v4::{Kind, Record};
 use serde_json::{json, Value};
 
+use crate::ingest;
 use crate::text::{canonical, stable_id, today, word_count};
-use crate::{ingest, ollama};
-
-pub const DEFAULT_EMBED_MODEL: &str = "all-minilm";
 
 /// A record as JSON for listings: everything except the embedding vector,
 /// which is replaced by its dimension count.
@@ -509,60 +507,10 @@ pub fn edit(records: &mut [Record], id: &str, e: Edit, date: &str) -> Result<Str
 }
 
 /// Removes one record by full id or unambiguous prefix. Returns its id.
+#[cfg(test)]
 pub fn remove(records: &mut Vec<Record>, id: &str) -> Result<String, String> {
     let i = crate::db::resolve_id(records, id)?;
     Ok(records.remove(i).id)
-}
-
-/// Embeds records that lack a vector (or every record, with `all`), using the
-/// database's model or `model`. Returns how many were embedded.
-///
-/// Refuses to mix models: vectors from two models are not comparable, and a
-/// database holding both would rank on noise.
-pub async fn embed(
-    meta: &mut DbMeta,
-    records: &mut [Record],
-    model: Option<String>,
-    all: bool,
-) -> Result<usize, String> {
-    let model = model.unwrap_or_else(|| {
-        if meta.embedding_model.is_empty() {
-            DEFAULT_EMBED_MODEL.to_string()
-        } else {
-            meta.embedding_model.clone()
-        }
-    });
-    if !meta.embedding_model.is_empty() && meta.embedding_model != model && !all {
-        return Err(format!(
-            "database is embedded with `{}`; mixing models breaks similarity. Use --all to re-embed everything with `{model}`.",
-            meta.embedding_model
-        ));
-    }
-    let todo: Vec<usize> = (0..records.len())
-        .filter(|&i| all || records[i].embedding.is_none())
-        .collect();
-    if todo.is_empty() {
-        return Ok(0);
-    }
-    // Compiled records are matched on their question, so that is what gets
-    // embedded; knowledge is matched on its body.
-    let texts: Vec<String> = todo
-        .iter()
-        .map(|&i| {
-            records[i]
-                .question
-                .clone()
-                .unwrap_or_else(|| records[i].body.clone())
-        })
-        .collect();
-    let vectors = ollama::embed(&model, &texts).await?;
-    let dims = vectors.first().map(|v| v.len()).unwrap_or(0) as u32;
-    for (&i, v) in todo.iter().zip(vectors) {
-        records[i].embedding = Some(v);
-    }
-    meta.embedding_model = model;
-    meta.embedding_dims = dims;
-    Ok(todo.len())
 }
 
 #[cfg(test)]
@@ -663,14 +611,15 @@ mod tests {
     #[test]
     fn an_edit_is_a_verification_and_drops_a_stale_vector() {
         let mut records = Vec::new();
-        let mut img = crate::media::image_record(
-            "a.png",
-            "d",
-            b"x",
-            "image/png",
+        let mut img = fact_record(
+            "What does the image show?",
             "A router.",
-            "qwen2.5vl:3b",
-        );
+            "d",
+            "a.png",
+            "model:test",
+            "2026-09-25",
+        )
+        .unwrap();
         img.embedding = Some(vec![0.1, 0.2]);
         let id = upsert(&mut records, img);
 

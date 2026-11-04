@@ -69,7 +69,6 @@ fn read_only_refuses_every_write_and_leaves_the_file_untouched() {
         &["context", "set", "rules", "--instructions", "Ask a human"],
         &["log", "changed something"],
         &["rm", "--source", "manual"],
-        &["embed"],
     ];
     for attempt in attempts {
         let mut args = vec!["--read-only", "--db", "t.fds"];
@@ -107,7 +106,6 @@ fn read_only_still_reads() {
         &["query", "port"],
         &["context", "ls"],
         &["journal", "show"],
-        &["policy", "ls"],
     ] {
         let mut full = vec!["--read-only", "--db", "t.fds"];
         full.extend_from_slice(args);
@@ -332,11 +330,26 @@ fn review_lists_the_lines_an_agent_flagged() {
         .as_array()
         .unwrap()
         .iter()
-        .map(|r| (r["path"].as_str().unwrap().to_string(), r["start"].as_u64(), r["end"].as_u64()))
+        .map(|r| {
+            (
+                r["path"].as_str().unwrap().to_string(),
+                r["start"].as_u64(),
+                r["end"].as_u64(),
+            )
+        })
         .collect();
-    assert!(rows.contains(&("backend/server.js".into(), Some(12), Some(18))), "{rows:?}");
-    assert!(rows.contains(&("backend/server.js".into(), Some(15), Some(15))), "{rows:?}");
-    assert!(rows.contains(&("backend/HANDOFF.md".into(), None, None)), "{rows:?}");
+    assert!(
+        rows.contains(&("backend/server.js".into(), Some(12), Some(18))),
+        "{rows:?}"
+    );
+    assert!(
+        rows.contains(&("backend/server.js".into(), Some(15), Some(15))),
+        "{rows:?}"
+    );
+    assert!(
+        rows.contains(&("backend/HANDOFF.md".into(), None, None)),
+        "{rows:?}"
+    );
     // reading is allowed under --read-only: review never writes
     let ro = sandbox.fds(&["--read-only", "--db", "t.fds", "review", "--list"]);
     assert!(ro.status.success(), "{}", text(&ro.stderr));
@@ -346,8 +359,25 @@ fn review_lists_the_lines_an_agent_flagged() {
 fn a_person_marks_a_journal_entry_reviewed_and_nothing_else() {
     let sandbox = Sandbox::new();
     ok(&sandbox.fds(&["init", "t"]));
-    ok(&sandbox.fds(&["--db", "t.fds", "log", "Order server", "--by", "backend", "--file", "a.js:3-5"]));
-    let fact = sandbox.fds(&["--db", "t.fds", "--json", "fact", "add", "How to ship?", "By post"]);
+    ok(&sandbox.fds(&[
+        "--db",
+        "t.fds",
+        "log",
+        "Order server",
+        "--by",
+        "backend",
+        "--file",
+        "a.js:3-5",
+    ]));
+    let fact = sandbox.fds(&[
+        "--db",
+        "t.fds",
+        "--json",
+        "fact",
+        "add",
+        "How to ship?",
+        "By post",
+    ]);
     let fact_id = serde_json::from_slice::<serde_json::Value>(&fact.stdout).unwrap()["id"]
         .as_str()
         .unwrap()
@@ -361,18 +391,28 @@ fn a_person_marks_a_journal_entry_reviewed_and_nothing_else() {
     assert_eq!(before[0]["reviewed"], false);
 
     // --read-only refuses, and the entry stays waiting
-    assert!(!sandbox.fds(&["--read-only", "--db", "t.fds", "journal", "review", &id]).status.success());
+    assert!(!sandbox
+        .fds(&["--read-only", "--db", "t.fds", "journal", "review", &id])
+        .status
+        .success());
     assert_eq!(journal()[0]["reviewed"], false);
 
     ok(&sandbox.fds(&["--db", "t.fds", "journal", "review", &id]));
     let after = journal();
     assert_eq!(after[0]["reviewed"], true);
-    assert_eq!(after[0]["id"], before[0]["id"], "reviewing must not change the id");
+    assert_eq!(
+        after[0]["id"], before[0]["id"],
+        "reviewing must not change the id"
+    );
     // a second time is not an error
     ok(&sandbox.fds(&["--db", "t.fds", "journal", "review", &id]));
 
     // a fact is not a journal entry
     let not_entry = sandbox.fds(&["--db", "t.fds", "journal", "review", &fact_id]);
     assert!(!not_entry.status.success());
-    assert!(text(&not_entry.stderr).contains("not a journal entry"), "{}", text(&not_entry.stderr));
+    assert!(
+        text(&not_entry.stderr).contains("not a journal entry"),
+        "{}",
+        text(&not_entry.stderr)
+    );
 }

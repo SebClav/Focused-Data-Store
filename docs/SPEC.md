@@ -1,5 +1,11 @@
 # FDS Specification v1 — Focused Model Data Store
 
+> **Implementation scope:** the basic Rust CLI provides local stdio MCP,
+> lexical retrieval, context, agent memory, journals and human review. The
+> optional HTTP, policy/guard/audit and model-assisted profiles described in
+> this specification are not shipped by this distribution. See GUIDE.md and
+> `fds --help` for the supported surface. File format compatibility is unchanged.
+
 **Status:** draft, experimental · **Date:** 2026-10-30 · **File format:** FDS 4.0
 
 **Revision 2026-10-30:** interrogatives and modals are no longer stopwords (§4.1):
@@ -19,8 +25,7 @@ file, and answers queries with records, a confidence level, and provenance.
 
 This document is normative. "MUST", "SHOULD" and "MAY" are used as in RFC 2119.
 The reference implementation is the `fds` command-line tool in this repository;
-`conformance/` holds a second implementation of the file format and the test
-files both must pass (§13).
+`conformance/` holds the reference fixtures checked by the Rust tests (§13).
 
 ---
 
@@ -461,9 +466,8 @@ why §8 exports the raw retriever signals instead.
 ## 6. File format (`.fds`, format version 4)
 
 A database is one file. This section describes it byte by byte, so that it can
-be implemented without reading the reference code: `conformance/fds.py` is a
-second implementation written from this text alone, and both must read the
-same files the same way (§13).
+be implemented without reading the reference code. Implementations must read
+the conformance fixtures as specified (§13).
 
 Two numbers are easy to confuse. The **format version** (`major.minor`, now
 4.0) is written in every file and says how to read it. The **version of this
@@ -1294,15 +1298,11 @@ reference tool rewrites a file (§6.2, C6).
 - `normalization.json` and `stopwords.txt`: §3.1 and §4.1 (including the search
   terms), as lines to reproduce.
 - `policy.json` and `cases/audit/`: §11, as checks, template fills, redactions and
-  audit chains to judge the same way (`policy.py` is the second implementation).
-- `fds.py`, `normalize.py` and `run.py`: a second implementation, written from
-  this text and sharing no code with the reference tool, and the script that runs
-  it. `gen.py` builds every case from that implementation and by hand, and its
-  output is deterministic.
+  audit chains to judge the same way.
 
-The Rust tools run the same files (`cargo test -p fds --test conformance`). When
-the two implementations disagree, the text of this document is wrong or unclear,
-and it is the text that gets fixed.
+Run the Rust format checks with `cargo test -p fds --test conformance` and the
+CLI checks with `cargo test -p fds-cli`. Disagreements between fixtures, code
+and this specification must be investigated and corrected at their source.
 
 ### 13.2 Levels
 

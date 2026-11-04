@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Removed
+
+- **Breaking CLI change:** focus the distribution on local MCP, context, agent
+  memory, decision journals and human review. Remove HTTP hosting and the web
+  manager, embeddings/Ollama, vision, general table import, policy/check, guard
+  and audit commands. `import` now reads JSON facts. Remove runtime HTTP client
+  and server dependencies. The on-disk format remains unchanged.
+
+- Remove the optional Python conformance implementation and fixture generator.
+  Keep the existing fixtures and Rust conformance tests; Python is not required
+  to build or test the Rust workspace.
+
 ### Added
 
 - `fds review` lists the lines agents flagged in the journal (`--file path:line[-end]`, `path#L12-L20`, or `path:line` in the

@@ -1,22 +1,13 @@
-# FDS conformance suite
+# FDS conformance fixtures
 
-The files that decide whether an implementation of the FDS file format
-(SPEC.md §6) reads and writes it correctly, and a second implementation, in
-Python, written from the specification without looking at the Rust code.
-
-If two programs written separately from one text agree on every file here, the
-text is enough to implement the format. When they disagree, the text is wrong
-or unclear, and that is a bug in SPEC.md, not in either program.
+Reference fixtures for the FDS file format, normalisation, policies and audit chains. The Rust tests consume these files; Python is not required.
 
 ## Run it
 
 ```
-python docs/conformance/run.py          # the Python implementation: 270+ checks
 cargo test -p fds --test conformance   # the Rust one, on the same files
 cargo test -p fds-cli                   # normalisation, policy, redaction and audit vectors
 ```
-
-Python 3.8 or later, standard library only.
 
 ## What is in it
 
@@ -29,11 +20,6 @@ Python 3.8 or later, standard library only.
 | `policy.json` | The guard's deterministic parts (SPEC §11): checks, template fills, redactions |
 | `cases/audit/` | Audit chains, intact and broken, with where each breaks (SPEC §11.4) |
 | `stopwords.txt` | The stopword list, part of the standard (SPEC §4.1) |
-| `fds.py` | The format: a reader and a writer. Not a copy of the Rust crate |
-| `normalize.py` | Normalisation and identifiers |
-| `policy.py` | The check, the template fill, the redaction and the audit chain |
-| `run.py` | Runs everything above against `fds.py` and `normalize.py` |
-| `gen.py` | Builds every case. Deterministic: running it changes nothing |
 
 ## A valid case
 
@@ -77,16 +63,14 @@ Python 3.8 or later, standard library only.
   one by one: a damaged record does not take the others with it.
 
 Besides the files, a good file cut at every length must be `truncated`, and
-`run.py` and the Rust test both do that.
+the Rust test checks that.
 
 ## Testing another implementation
 
-Do for each name in `cases/MANIFEST.json` what `run.py` does, which is short:
-read the `.fds`, compare with the `.json` beside it. Nothing here is specific to
-Python or to Rust. SPEC §13 says what you may claim when it passes.
+For every entry in `cases/MANIFEST.json`, read the `.fds` file and compare it
+with the expected `.json`. SPEC §13 defines the conformance levels.
 
 ## Changing a case
 
-Edit `gen.py`, run it, and read the diff: a `.fds` that changes without you
-changing the format means something else changed. Do not edit a `.fds` or a
-`.json` by hand.
+Update fixtures only for a documented specification change or a new test case.
+Review binary and expected JSON changes together and run the Rust suite.

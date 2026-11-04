@@ -1,96 +1,70 @@
-# FDS
+# FDS for agents and AI
 
-FDS (Focused Model Data Store) is a database for knowledge that AI systems
-consume. One portable `.fds` file holds verified facts, procedures, document
-fragments and image descriptions, each with its source and who verified it. A
-query returns records and a confidence (`exact`, `strong`, `weak` or `none`);
-FDS never generates text. It works next to SQL or MongoDB: those keep the
-operational data, FDS keeps what agents should be told.
+FDS stores context and agent memory in portable `.fds` files. Agents retrieve
+records through MCP and leave decisions and file references for human review.
+FDS returns stored information with its source and retrieval confidence.
 
-The status is **experimental** (format 4.0, specification 0.x).
+```mermaid
+flowchart LR
+    A[Your AI agent] <-->|Local MCP| B[FDS context and memory]
+    A --> C[Decisions and changed lines]
+    C --> D[Human review]
+```
 
-## What is here
-
-| Path | What it is |
-|---|---|
-| `fds-core/` | The `.fds` format as a Rust library: versions 2, 3 and 4, CRC-32 on every region, atomic writes |
-| `fds-cli/` | The `fds` command-line tool: facts, procedures, contexts, sectors, MCP, HTTP API and browser manager, change journal, policies, guard and audit |
-| `conformance/` | The format conformance suite and a second implementation in Python, written from the specification |
-| `SPEC.md` | The specification: format, query semantics, sectors, policies |
-| `site/how-i-work.html` | The animated page of the flow from a request to human review |
-| `examples/` | A sample agent guide and the `cafe-aurora` multi-agent example |
+Experimental software, Apache-2.0. Retrieval is lexical. Verification labels
+are metadata, not proof of identity. Use OS permissions to protect files.
 
 ## Build and test
 
-Install Rust, then:
-
 ```sh
-cargo build --release -p fds-cli      # target/release/fds (fds.exe on Windows)
-cargo test --workspace                # Rust tests
-python conformance/run.py             # the Python implementation, same files
+cargo build --release -p fds-cli
+cargo test --workspace
 ```
 
-## Quick start
+The binary is `target/release/fds` (`fds.exe` on Windows). No Python, external
+model, embedding service or web server is required.
+
+## Start
 
 ```sh
-fds init project                                   # creates project.fds
-fds fact add "What is the service port?" "443" --collection project --source network-spec
-fds add docs/ -c project                           # ingest a folder of documents
-fds query "service port"
-fds status
+fds init project
+fds --db project.fds fact add "What is the service port?" "443" --source project-spec
+fds --db project.fds add docs/
+fds --read-only --db project.fds query "service port"
 ```
 
-`fds <command> --help` lists the options, and `fds-cli/GUIDE.md` walks through
-every command.
+## MCP
 
-## Several agents
+Configure the host to run FDS with an absolute database path:
 
-Give every agent a sector: its own database file, which it can write, plus the
-shared ones it may read and cannot change.
+```json
+{"mcpServers":{"fds":{"command":"fds","args":["--db","/absolute/path/project.fds","mcp","--write","--as","coding-agent"]}}}
+```
+
+Without `--write`, MCP only reads. `--read-only` also refuses writes. Agent
+memory is marked `model:<name>` and cannot replace person-verified facts.
+For several agents, sectors separate writable memory from shared context.
+
+## Record and review
 
 ```sh
-fds sector new shared
-fds sector new sales --agent --reads shared        # prints the agent's key, once
-fds serve --sectors sectors.json                   # HTTP API, manager and MCP at /mcp
+fds --db project.fds log "Updated order validation" --by backend --why "Reject duplicate items" --file backend/server.js:42-58
+fds --db project.fds journal show
+fds --db project.fds review --list
+fds --db project.fds journal review RECORD_ID
 ```
 
-What an agent saves over MCP is marked `model:<name>` and stays in its own
-sector until a person reviews it and makes it everyone's with
-`fds sector promote`. The agent can also write what it did and why with
-`fds_log`, and `fds journal show` reads it back. Policies a person verified
-are enforced by `fds check` and by `fds guard`, which records every decision
-in a hash-chained audit.
+Agents propose and document; a person reviews. Review labels do not authenticate
+who ran the command. FDS does not guarantee that agents obey instructions.
 
-For an agent that is only given the command line, use `--read-only`: the tool
-then refuses every command that creates or modifies a database, a sector or
-the audit file. `FDS.md` is a ready-made instruction file for such an agent.
+## Repository
 
-## What to keep in mind
+- `crates/fds-core/`: file format, checksums and atomic writes.
+- `crates/fds-cli/`: CLI, context, memory, local MCP and human review.
+- `docs/`: [guide](docs/GUIDE.md), specification and Rust conformance fixtures.
+- `examples/`: sample databases and source data.
+- [FDS.md](FDS.md): instructions for coding agents.
 
-- **Labels are not authentication.** `verified_by` and `source` are text in the
-  file. Anyone who can write the file can change them. `--read-only` is a guard
-  in this tool and keys only separate agents that go through `fds serve`; a
-  process that can read the `.fds` files reads everything in them. Use file
-  permissions where that matters.
-- **`exact` is about the words, not the meaning.** Stage 1 compares the words of
-  the question after normalisation. Negations, interrogatives and modals count
-  (`not`, `who`, `how`, `can`, `should`), so questions that differ by one of them
-  are different questions. Words like `what`, `is` and `the` are ignored, and a
-  paraphrase that shares no word is not `exact`. See SPEC.md §4.2.
-- **A question is one fact per database.** The identifier comes from the
-  question alone (SPEC.md §3.1), so the same question in another collection
-  replaces the fact, and `fact add` warns when it does. Separate knowledge
-  belongs in separate sectors.
-- **Retrieval is lexical.** Stage 2 ranks by words (BM25), with a half-weight
-  match for plurals and close forms. It does not understand meaning; optional
-  embeddings help, and a query that shares no word with a record can miss it.
-- **No warranty, and nobody has reviewed it.** This is a personal, experimental
-  tool. Where the records say `human`, the tool only reads a label: it does not
-  know who wrote it.
-- **The figures are early.** The numbers in `CHANGELOG.md` come from small
-  test sets written by the same author as the records; the measurement scripts
-  are not part of this repository.
-
-## License
-
-Apache License 2.0. See [LICENSE](LICENSE).
+This basic distribution removes HTTP hosting, browser management, embeddings,
+vision, policy enforcement, guard and audit commands. Existing file versions
+remain readable; the CLI surface has intentionally changed.

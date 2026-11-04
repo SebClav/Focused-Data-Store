@@ -1,53 +1,21 @@
-# FDS agent instructions
+# FDS instructions for agents
 
-Before coding, read the project's FDS file through the `fds` command and follow
-the rules below. Replace `project.fds` with the file your host gives you.
+Use the configured MCP server to retrieve context before acting.
 
-## Read project context
+1. List contexts with `fds_contexts`; load one with `fds_context`. Reuse its
+   hash with `known_hash` to avoid loading unchanged instructions.
+2. Retrieve records with `fds_query`; cite IDs and sources. Retrieval confidence
+   describes matching, not factual certainty.
+3. Treat `model:<name>` records as proposals awaiting review.
+4. With writable memory, save useful notes through `fds_remember`. Document
+   changes through `fds_log`, with reasons and file/line references.
+5. Read prior decisions through `fds_journal`.
+6. Leave human approval to the owner; do not mark your own work human-reviewed.
 
-Use the file explicitly, always with `--read-only`, and ask only for what the
-task needs:
+MCP without `--write` only reads. Sector writes are restricted to the agent's
+own memory through this interface. Direct file access needs OS permissions.
 
-~~~sh
-fds --read-only --db project.fds --json status
-fds --read-only --db project.fds --json query "relevant task terms" --budget 400
-fds --read-only --db project.fds --json show RECORD_ID
-~~~
+For CLI reads: `fds --read-only --db project.fds query "question"`.
+For authorized logging: `fds --db project.fds log "Summary" --by AGENT --why "Reason" --file path:10-20`.
 
-Cite the record IDs and the `source` values that support project-specific
-decisions. If no record supports a claim, say the information is missing and
-ask the human; do not guess.
-
-## Know what a result is worth
-
-- `exact`, `strong` and `weak` describe how the words matched. They are not
-  truth scores, and none of them says a person reviewed the record.
-- `exact` compares words, not meaning. Questions that differ only by a question
-  word or an auxiliary (`who`, `how`, `can`, `should`) share an answer; read the
-  record's own question before you rely on it.
-- Look at `verified_by`. `human` means a person at a terminal or in the manager
-  saved or checked it. `model:<name>` means an agent wrote it and nobody has
-  reviewed it yet; say so in your handoff instead of presenting it as approved.
-- `none` means no record matched. Report the gap.
-
-## Do not write approved knowledge
-
-Treat the `.fds` file as read-only. `--read-only` makes `fds` refuse `fact`,
-`proc`, `context set|import`, `add`, `import`, `log`, `rm`, `embed`, `policy
-add`, `sector` changes and `serve`, but it is a guard in the tool, not access
-control: the host must also give you a read-only file or an MCP connection
-that has no write tools.
-
-If the host gave you a sector and a key over MCP, write only there:
-`fds_remember` saves into your own sector, marked `model:<your name>`, and a
-person decides whether to promote it. Put every other suggestion under
-“Proposed FDS updates” in your handoff for human review. Never run a writing
-command on a person's behalf, and never mark a record verified.
-
-## Required handoff
-
-Report task status; a concise summary; record IDs and sources consulted (and
-which of them were `model:` and unreviewed); exact files changed;
-implementation decisions and rationale; checks actually run (or state “not
-run”); unresolved risks and assumptions; and proposed FDS updates awaiting
-human review. Never claim tests or queries that you did not perform.
+See `docs/GUIDE.md` and `fds --help` for supported commands.

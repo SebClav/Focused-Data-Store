@@ -28,7 +28,7 @@
   standard list contained `no`, `nor`, `not`, `cannot` and `sin`, so
   "Can users delete records?" and "Cannot users delete records?" had the same
   token set key, and the stored answer came back as `exact` for its opposite.
-  The list is now 193 words in `conformance/stopwords.txt` and in the Rust
+  The list is now 193 words in `docs/conformance/stopwords.txt` and in the Rust
   tool, with eleven new vectors (the Python suite runs 287 checks, from 276).
 - Interrogatives and modals are no longer stopwords either (SPEC.md §4.1,
   revision 2026-10-30): `can`, `should`, `how`, `who`, `when`, `where`,

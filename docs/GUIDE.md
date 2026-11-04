@@ -1,7 +1,7 @@
 # fds
 
 The reference command-line tool for FDS databases. The format and query
-semantics are defined in [SPEC.md](../SPEC.md).
+semantics are defined in [SPEC.md](SPEC.md).
 
 A FDS database is one `.fds` file holding three kinds of records:
 

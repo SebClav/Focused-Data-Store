@@ -11,7 +11,7 @@ or unclear, and that is a bug in SPEC.md, not in either program.
 ## Run it
 
 ```
-python conformance/run.py          # the Python implementation: 270+ checks
+python docs/conformance/run.py          # the Python implementation: 270+ checks
 cargo test -p fds --test conformance   # the Rust one, on the same files
 cargo test -p fds-cli                   # normalisation, policy, redaction and audit vectors
 ```

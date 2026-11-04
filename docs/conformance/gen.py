@@ -5,7 +5,7 @@ for the damaged ones: nothing here calls the Rust crate. Run it again and the
 output must not change (the files are deterministic); a diff in `git status`
 after running it means something changed in the format.
 
-    python conformance/gen.py
+    python docs/conformance/gen.py
 """
 
 import json

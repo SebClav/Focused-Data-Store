@@ -261,11 +261,13 @@ mod tests {
         std::fs::remove_dir_all(p.parent().unwrap()).ok();
     }
 
-    /// conformance/cases/audit: the chains every implementation must judge the same way.
+    /// docs/conformance/cases/audit: the chains every implementation must judge the same way.
     #[test]
     fn the_audit_conformance_cases_are_judged_as_expected() {
         let base = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("..")
+            .join("..")
+            .join("docs")
             .join("conformance")
             .join("cases")
             .join("audit");

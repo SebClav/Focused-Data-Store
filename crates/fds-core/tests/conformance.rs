@@ -1,4 +1,4 @@
-//! The conformance suite (../conformance): the files a second implementation,
+//! The conformance suite (../../docs/conformance): the files a second implementation,
 //! written in Python from the spec alone, also has to read the same way.
 //!
 //! Every valid file must read into exactly the records in its `.json`, and,
@@ -14,7 +14,7 @@ use fds::FdsError;
 use serde_json::Value;
 
 fn cases() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join("conformance").join("cases")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("docs").join("conformance").join("cases")
 }
 
 fn manifest() -> Value {

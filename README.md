@@ -13,12 +13,11 @@ The status is **experimental** (format 4.0, specification 0.x).
 
 | Path | What it is |
 |---|---|
-| `fds-core/` | The `.fds` format as a Rust library: versions 2, 3 and 4, CRC-32 on every region, atomic writes |
-| `fds-cli/` | The `fds` command-line tool: facts, procedures, contexts, sectors, MCP, HTTP API and browser manager, change journal, policies, guard and audit |
-| `conformance/` | The format conformance suite and a second implementation in Python, written from the specification |
-| `SPEC.md` | The specification: format, query semantics, sectors, policies |
-| `site/how-i-work.html` | The animated page of the flow from a request to human review |
+| `crates/fds-cli/` | The `fds` command-line tool: facts, procedures, contexts, sectors, MCP, HTTP API and browser manager, change journal, policies, guard and audit |
+| `crates/fds-core/` | The `.fds` format as a Rust library: versions 2, 3 and 4, CRC-32 on every region, atomic writes |
+| `docs/` | [The user guide](docs/GUIDE.md), [the specification](docs/SPEC.md), [the animated flow from a request to human review](docs/how-i-work.html), and the conformance suite with a second implementation in Python (`docs/conformance/`) |
 | `examples/` | A sample agent guide and the `cafe-aurora` multi-agent example |
+| `FDS.md` | A ready-made instruction file for an agent that only gets the command line |
 
 ## Build and test
 
@@ -27,7 +26,7 @@ Install Rust, then:
 ```sh
 cargo build --release -p fds-cli      # target/release/fds (fds.exe on Windows)
 cargo test --workspace                # Rust tests
-python conformance/run.py             # the Python implementation, same files
+python docs/conformance/run.py   # the Python implementation, same files
 ```
 
 ## Quick start
@@ -40,7 +39,7 @@ fds query "service port"
 fds status
 ```
 
-`fds <command> --help` lists the options, and `fds-cli/GUIDE.md` walks through
+`fds <command> --help` lists the options, and [`docs/GUIDE.md`](docs/GUIDE.md) walks through
 every command.
 
 ## Reviewing what agents flagged
@@ -92,9 +91,9 @@ the audit file. `FDS.md` is a ready-made instruction file for such an agent.
   the question after normalisation. Negations, interrogatives and modals count
   (`not`, `who`, `how`, `can`, `should`), so questions that differ by one of them
   are different questions. Words like `what`, `is` and `the` are ignored, and a
-  paraphrase that shares no word is not `exact`. See SPEC.md §4.2.
+  paraphrase that shares no word is not `exact`. See [docs/SPEC.md](docs/SPEC.md) §4.2.
 - **A question is one fact per database.** The identifier comes from the
-  question alone (SPEC.md §3.1), so the same question in another collection
+  question alone ([docs/SPEC.md](docs/SPEC.md) §3.1), so the same question in another collection
   replaces the fact, and `fact add` warns when it does. Separate knowledge
   belongs in separate sectors.
 - **Retrieval is lexical.** Stage 2 ranks by words (BM25), with a half-weight

@@ -164,6 +164,8 @@ mod tests {
     fn redaction_reproduces_the_conformance_vectors() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("..")
+            .join("..")
+            .join("docs")
             .join("conformance")
             .join("policy.json");
         let v: serde_json::Value =

@@ -1,6 +1,6 @@
 """Runs the conformance suite against the Python implementation.
 
-    python conformance/run.py
+    python docs/conformance/run.py
 
 The Rust implementation runs the same files:
 

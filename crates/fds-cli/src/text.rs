@@ -666,6 +666,8 @@ mod tests {
     fn conformance_file(name: &str) -> String {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("..")
+            .join("..")
+            .join("docs")
             .join("conformance")
             .join(name);
         std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))

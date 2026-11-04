@@ -539,6 +539,8 @@ mod tests {
     fn vectors() -> serde_json::Value {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("..")
+            .join("..")
+            .join("docs")
             .join("conformance")
             .join("policy.json");
         serde_json::from_str(
